@@ -21,6 +21,7 @@ import {
   markAllCorrect, clearRow,
 } from "../state.js";
 import { tally, formatPercent, bandFor } from "../scoring.js";
+import { standardChip } from "./chips.js";
 
 /** Screen-local selection, kept across re-renders. */
 const ui = { unit: UNITS[0], assessmentKey: null };
@@ -252,13 +253,4 @@ function handleKey(e, row, col, studentId, qid) {
 
 function round(n) {
   return Math.round(n * 100) / 100;
-}
-
-/** Standard chip with a `?` that reveals the plain-English description. */
-export function standardChip(code, ctx) {
-  return el("button", {
-    type: "button", class: "chip",
-    "aria-label": `Standard ${code}. Show description.`,
-    onclick: (e) => { e.stopPropagation(); ctx.showStandard(code); },
-  }, el("span", { class: "chip-code", text: code }), el("span", { class: "chip-q", "aria-hidden": "true", text: "?" }));
 }

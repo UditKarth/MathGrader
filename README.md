@@ -32,7 +32,13 @@ already committed, and the report re-enables its Kindergarten explainer on its o
 
 - **Roster** — add students one at a time or paste a whole class; rename, delete, and see
   each student's overall percentage and how many questions they've been assessed on.
-- **Gradebook** — pick a unit, then type scores into a students × questions grid. Each
+- **Quick edit** — every roster row has a *Quick edit* button that expands an inline panel
+  for entering and updating that student's points **without leaving the home page**. Pick a
+  unit, type the scores. It is the other axis from the gradebook: one student across their
+  whole year, rather than one assessment across the whole class — which is what you want for
+  a make-up test, a re-take, or a single corrected answer.
+- **Gradebook** — bulk entry for a whole class. Pick a unit, then type scores into a
+  students × questions grid. Each
   question column carries the standards it's aligned to and an editable max-points field.
   **Every question defaults to 1 point**, and a teacher can change any question's max on the
   fly; percentages, proficiency bands, and the report all recalculate immediately, for the
@@ -227,6 +233,8 @@ src/
   styles.css                      including the @media print stylesheet
   views/
     roster.js                     home / roster screen
+    quickEdit.js                  the inline per-student score panel on the roster
+    chips.js                      shared standard chip with its `?` description popover
     gradebook.js                  the data-entry grid
     report.js                     the individual report
   data/
@@ -240,7 +248,19 @@ tools/
   check-scoring.mjs               scoring-rule assertions
 ```
 
-## Keyboard shortcuts (Gradebook)
+## Two ways to enter scores
+
+|  | Quick edit (home page) | Gradebook |
+| --- | --- | --- |
+| Shape | one student × all 7 units | one assessment × the whole class |
+| Best for | a make-up test, a re-take, fixing one answer | grading a stack of papers after a unit |
+| Reach it | *Quick edit* on any roster row | the Gradebook tab |
+
+Both write to the same state, so a score typed in one shows up immediately in the other.
+
+## Keyboard shortcuts
+
+**Gradebook**
 
 | Key | Action |
 | --- | --- |
@@ -250,4 +270,14 @@ tools/
 | typing a digit | Replaces the cell contents |
 | <kbd>Backspace</kbd> on an empty cell | Clears it back to "not assessed" |
 
-Every screen is operable by keyboard alone, with visible focus rings throughout.
+**Quick edit**
+
+| Key | Action |
+| --- | --- |
+| <kbd>←</kbd> <kbd>→</kbd> | Move between questions |
+| <kbd>Enter</kbd> | Next question (<kbd>Shift</kbd>+<kbd>Enter</kbd> goes back) |
+| <kbd>Esc</kbd> | Close the panel and return focus to the button |
+
+Opening Quick edit puts the cursor straight in the first score box, so the teacher can start
+typing without reaching for the mouse. Every screen is operable by keyboard alone, with
+visible focus rings throughout.

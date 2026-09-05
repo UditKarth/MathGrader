@@ -6,6 +6,13 @@ import {
 } from "../state.js";
 import { overallFor, formatPercent, bandFor } from "../scoring.js";
 import { QUESTIONS, UNITS, ASSESSMENTS } from "../data/standards.js";
+import { renderQuickEdit } from "./quickEdit.js";
+
+/**
+ * Which student's quick-edit panel is open, and which unit it is showing.
+ * Module-level so it survives a re-render of the roster.
+ */
+const ui = { openStudentId: null, unit: UNITS[0] };
 
 const SAMPLE_CLASS = [
   "Ana R.", "Ben T.", "Camila S.", "Dev P.", "Elena M.",
@@ -93,7 +100,7 @@ function renderEmptyState(ctx) {
     }),
     el("ol", { class: "steps" },
       el("li", { text: "Add your students above (or paste the whole roster)." }),
-      el("li", { text: "Open the Gradebook, pick a unit, and type the scores. Each question is worth 1 point unless you change it." }),
+      el("li", { text: "Enter scores: use Quick edit on a student's row here, or the Gradebook to do the whole class at once. Each question is worth 1 point unless you change it." }),
       el("li", { text: "Open a student's report to see how they are doing on each standard." })
     ),
     el("button", {
@@ -125,23 +132,40 @@ function renderTable(state, ctx) {
       })
     );
 
+    const isOpen = ui.openStudentId === student.id;
+
+    const toggle = el("button", {
+      type: "button",
+      class: `btn btn-small quick-toggle${isOpen ? " active" : ""}`,
+      "aria-expanded": isOpen ? "true" : "false",
+      "aria-controls": `quick-${student.id}`,
+      title: `Enter or update ${student.name}'s scores without leaving this page`,
+      onclick: () => {
+        ui.openStudentId = isOpen ? null : student.id;
+        ctx.rerender();
+        if (!isOpen) {
+          // Land the teacher on the first score box, ready to type.
+          const first = document.querySelector(`#quick-${CSS.escape(student.id)} .quick-score`);
+          first?.focus();
+          first?.select();
+        } else {
+          document.querySelector(`[data-quick-toggle="${CSS.escape(student.id)}"]`)?.focus();
+        }
+      },
+    }, isOpen ? "Close" : "Quick edit");
+    toggle.dataset.quickToggle = student.id;
+
     const row = el("tr", {
+      class: isOpen ? "is-open" : null,
       dataset: { studentId: student.id },
       ondblclick: () => ctx.openReport(student.id),
     },
       nameCell,
-      el("td", { class: "num" },
-        assessed === 0
-          ? el("span", { class: "muted", text: "Not yet assessed" })
-          : el("span", { class: `pct band-${band.key}` }, formatPercent(pct))
-      ),
-      el("td", { class: "num" },
-        assessed === 0 ? el("span", { class: "muted", text: "—" }) : `${assessed} of ${QUESTIONS.length}`
-      ),
-      el("td", { class: "num" },
-        assessed === 0 ? el("span", { class: "muted", text: "—" }) : `${round(earned)} / ${round(possible)}`
-      ),
+      el("td", { class: "num", dataset: { summaryPct: student.id } }, pctContent(pct, assessed)),
+      el("td", { class: "num", dataset: { summaryAssessed: student.id } }, assessedContent(assessed)),
+      el("td", { class: "num col-points", dataset: { summaryPoints: student.id } }, pointsContent(earned, possible, assessed)),
       el("td", { class: "row-actions" },
+        toggle,
         el("button", {
           type: "button", class: "btn btn-small", text: "Report",
           onclick: () => ctx.openReport(student.id),
@@ -150,6 +174,7 @@ function renderTable(state, ctx) {
           type: "button", class: "btn btn-small btn-danger", text: "Delete",
           onclick: () => {
             if (confirmAction(`Delete ${student.name} and all of their scores? This cannot be undone.`)) {
+              if (ui.openStudentId === student.id) ui.openStudentId = null;
               deleteStudent(student.id);
               ctx.announce(`Deleted ${student.name}.`);
               ctx.rerender();
@@ -159,6 +184,24 @@ function renderTable(state, ctx) {
       )
     );
     body.append(row);
+
+    if (isOpen) {
+      const closePanel = () => {
+        ui.openStudentId = null;
+        ctx.rerender();
+        document.querySelector(`[data-quick-toggle="${CSS.escape(student.id)}"]`)?.focus();
+      };
+      const panel = renderQuickEdit(student, ui.unit, ctx, {
+        onClose: closePanel,
+        onUnitChange: (u) => { ui.unit = u; ctx.rerender(); },
+        // Update the summary cells in place — a full re-render on every
+        // keystroke would tear the input out from under the teacher.
+        onScoreChange: () => updateSummary(student.id),
+      });
+      body.append(
+        el("tr", { class: "quick-row" }, el("td", { colspan: "5", class: "quick-cell" }, panel))
+      );
+    }
   }
 
   return el("section", { class: "card" },
@@ -169,15 +212,17 @@ function renderTable(state, ctx) {
           el("tr",
             el("th", { scope: "col", text: "Student" }),
             el("th", { scope: "col", class: "num", text: "Overall" }),
-            el("th", { scope: "col", class: "num", text: "Questions assessed" }),
-            el("th", { scope: "col", class: "num", text: "Points" }),
+            el("th", { scope: "col", class: "num" },
+              el("span", { class: "wide-only", text: "Questions assessed" }),
+              el("span", { class: "narrow-only", text: "Assessed" })),
+            el("th", { scope: "col", class: "num col-points", text: "Points" }),
             el("th", { scope: "col", text: "Actions" })
           )
         ),
         body
       )
     ),
-    el("p", { class: "muted small", text: "Tip: click a name to rename, double-click a name or row to open the report." })
+    el("p", { class: "muted small", text: "Tip: Quick edit enters scores right here · click a name to rename · double-click a name or row to open the report." })
   );
 }
 
@@ -202,6 +247,36 @@ function startRename(button, student, ctx) {
   button.replaceWith(input);
   input.focus();
   input.select();
+}
+
+function pctContent(pct, assessed) {
+  if (assessed === 0) return el("span", { class: "muted", text: "Not yet assessed" });
+  const band = bandFor(pct);
+  return el("span", { class: `pct band-${band.key}` }, formatPercent(pct));
+}
+
+function assessedContent(assessed) {
+  return assessed === 0
+    ? el("span", { class: "muted", text: "—" })
+    : document.createTextNode(`${assessed} of ${QUESTIONS.length}`);
+}
+
+function pointsContent(earned, possible, assessed) {
+  return assessed === 0
+    ? el("span", { class: "muted", text: "—" })
+    : document.createTextNode(`${round(earned)} / ${round(possible)}`);
+}
+
+/** Repaint one student's summary cells without re-rendering the table. */
+function updateSummary(studentId) {
+  const { earned, possible, assessed, pct } = overallFor(studentId);
+  const put = (attr, node) => {
+    const cell = document.querySelector(`[data-${attr}="${CSS.escape(studentId)}"]`);
+    if (cell) clear(cell).append(node);
+  };
+  put("summary-pct", pctContent(pct, assessed));
+  put("summary-assessed", assessedContent(assessed));
+  put("summary-points", pointsContent(earned, possible, assessed));
 }
 
 function round(n) {

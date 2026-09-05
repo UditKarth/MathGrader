@@ -10,7 +10,7 @@ import {
   overallFor, standardsBreakdown, assessmentsBreakdown, groupByDomain,
   narrative, formatPercent, bandFor, DOUBLE_COUNT_FOOTNOTE, BANDS,
 } from "../scoring.js";
-import { standardChip } from "./gradebook.js";
+import { standardChip } from "./chips.js";
 
 export function renderReport(root, ctx, studentId) {
   clear(root);

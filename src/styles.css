@@ -234,6 +234,93 @@ thead th { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; 
 .band-support     { color: var(--band-support); }
 .band-none        { color: var(--text-muted); }
 
+/* ---------- Quick edit (roster inline entry) ---------- */
+
+.roster-table tr.is-open > * { background: var(--accent-soft); }
+.quick-toggle.active { background: var(--accent); color: var(--accent-text); border-color: transparent; }
+
+.quick-row > .quick-cell { padding: 0; background: var(--surface-2); }
+.quick-row:hover > .quick-cell { background: var(--surface-2); }
+
+/* width:0 + min-width:100% keeps this panel from widening the table: the cell
+   sizes from the ordinary rows, and the panel then fills whatever it got. The
+   card strip scrolls inside itself rather than pushing the row actions
+   off-screen. */
+.quick-edit {
+  width: 0; min-width: 100%;
+  padding: 1rem;
+  border-left: 4px solid var(--accent);
+  display: flex; flex-direction: column; gap: .8rem;
+}
+
+.quick-label { font-size: .85rem; font-weight: 700; color: var(--text-muted); }
+
+.quick-units { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.unit-pill {
+  font: inherit; font-weight: 700; font-variant-numeric: tabular-nums;
+  position: relative;
+  min-width: 44px; min-height: 44px; padding: .4rem .8rem;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: 999px; cursor: pointer;
+}
+.unit-pill:hover { background: var(--accent-soft); }
+.unit-pill.active { background: var(--accent); color: var(--accent-text); border-color: transparent; }
+.pill-dot {
+  position: absolute; top: 6px; right: 8px;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+}
+.unit-pill.active .pill-dot { background: var(--accent-text); }
+
+/* The strip scrolls sideways on its own; the page never does. */
+.quick-strip {
+  display: flex; gap: .5rem;
+  min-width: 0;                     /* let the flex child shrink so it can scroll */
+  overflow-x: auto; padding-bottom: .35rem;
+  scroll-snap-type: x proximity;
+}
+.quick-card {
+  flex: 0 0 auto; scroll-snap-align: start;
+  min-width: 7.5rem; padding: .5rem;
+  background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  display: flex; flex-direction: column; gap: .4rem;
+}
+.quick-card.is-over { border-color: var(--danger); background: var(--danger-soft); }
+.quick-card-head { display: flex; flex-direction: column; gap: .2rem; }
+.quick-q { font-weight: 800; font-size: .95rem; }
+
+.quick-card-entry { display: flex; align-items: center; gap: .25rem; }
+.quick-score, .quick-max {
+  font: inherit; font-variant-numeric: tabular-nums; text-align: center;
+  color: var(--text); background: var(--surface);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+}
+.quick-score { flex: 1 1 auto; width: 3.4rem; min-height: 44px; font-size: 1.05rem; font-weight: 600; }
+.quick-score:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.quick-score.over-max { border-color: var(--danger); color: var(--danger); font-weight: 800; }
+.quick-max { width: 2.9rem; min-height: 34px; font-size: .8rem; color: var(--text-muted); background: var(--surface-2); }
+.quick-slash { color: var(--text-muted); font-weight: 700; }
+
+.quick-score::-webkit-outer-spin-button, .quick-score::-webkit-inner-spin-button,
+.quick-max::-webkit-outer-spin-button, .quick-max::-webkit-inner-spin-button {
+  -webkit-appearance: none; margin: 0;
+}
+.quick-score, .quick-max { -moz-appearance: textfield; appearance: textfield; }
+
+.quick-foot {
+  display: flex; gap: 1rem; flex-wrap: wrap;
+  align-items: center; justify-content: space-between;
+}
+.quick-total { margin: 0; }
+.quick-total-value { font-size: .95rem; }
+.quick-actions { display: flex; gap: .4rem; }
+.quick-hint { margin: 0; }
+
+@media (max-width: 720px) {
+  .quick-edit { padding: .75rem; }
+  .quick-foot { align-items: flex-start; flex-direction: column; }
+}
+
 /* ---------- Gradebook ---------- */
 
 .selector { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-start; }
@@ -371,6 +458,19 @@ thead th { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; 
 
 /* ---------- Small screens / tablet ---------- */
 
+/* Keep the row's actions reachable before the table has to scroll: drop the
+   Points column (it is derivable from the two columns beside it) and let the
+   buttons wrap. */
+.narrow-only { display: none; }
+
+@media (max-width: 900px) {
+  .roster-table .col-points { display: none; }
+  .roster-table .row-actions { flex-wrap: wrap; gap: .3rem; }
+  .roster-table th, .roster-table td { padding: .6rem .45rem; }
+  .wide-only { display: none; }
+  .narrow-only { display: inline; }
+}
+
 @media (max-width: 720px) {
   .app-bar-inner { gap: .6rem; }
   .brand h1 { font-size: 1rem; }
@@ -400,6 +500,8 @@ thead th { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; 
   body { background: #fff; color: #000; font-size: 11pt; }
 
   .no-print,
+  .quick-row,
+  .quick-edit,
   .app-bar,
   .app-foot,
   #banner-host,
