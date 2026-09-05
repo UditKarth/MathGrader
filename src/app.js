@@ -7,6 +7,7 @@ import { el, clear, confirmAction, downloadBlob } from "./dom.js";
 import {
   loadState, getState, subscribe, onSaveStatus, replaceState, mergeState,
   clearAll, getStorageWarning, clearStorageWarning, saveNow, STATE_VERSION,
+  markExported, daysSinceExport, backupIsStale,
 } from "./state.js";
 import { gradebookCsv } from "./scoring.js";
 import { describeStandard, isPrerequisite, DOMAINS } from "./data/standardDescriptions.js";
@@ -74,15 +75,62 @@ onSaveStatus((status) => {
 // Banners
 // ---------------------------------------------------------------------------
 
-function showBanner(message, tone = "warn") {
-  const banner = el("div", { class: `banner banner-${tone}`, role: "status" },
-    el("p", { text: message }),
+function showBanner(message, tone = "warn", extra = {}) {
+  const banner = el("div", { class: `banner banner-${tone} ${extra.className || ""}`, role: "status" },
+    el("p", {}, message,
+      extra.action
+        ? el("button", { type: "button", class: "linklike banner-action", text: extra.action.label, onclick: extra.action.onClick })
+        : null),
     el("button", {
       type: "button", class: "btn btn-small", text: "Dismiss",
-      onclick: () => { banner.remove(); clearStorageWarning(); },
+      onclick: () => { banner.remove(); extra.onDismiss ? extra.onDismiss() : clearStorageWarning(); },
     })
   );
   bannerHost.append(banner);
+}
+
+// ---------------------------------------------------------------------------
+// Backup nudge
+//
+// Browser storage is this app's only copy. On GitHub Pages it lives on the
+// shared https://<user>.github.io origin, where clearing site data — or
+// Safari's eviction of script-writable storage for sites left alone for a
+// while — takes the gradebook with it. So once there are real scores, we say
+// so until the teacher has downloaded a backup.
+// ---------------------------------------------------------------------------
+
+let backupNudgeDismissed = false;
+
+function backupLabel() {
+  const days = daysSinceExport();
+  if (days === null) return "Last backup: never";
+  if (days === 0) return "Last backup: today";
+  if (days === 1) return "Last backup: yesterday";
+  return `Last backup: ${days} days ago`;
+}
+
+function refreshBackupLabel() {
+  const node = document.getElementById("backup-status");
+  if (node) node.textContent = backupLabel();
+}
+
+function maybeNudgeBackup() {
+  refreshBackupLabel();
+  if (backupNudgeDismissed) return;
+  if (!backupIsStale()) return;
+  if (document.querySelector(".banner-backup")) return;
+  const days = daysSinceExport();
+  showBanner(
+    days === null
+      ? "You have scores saved in this browser and no backup file yet. If this browser's data is cleared, they are gone. "
+      : `Your last backup was ${days} days ago. `,
+    "info",
+    {
+      className: "banner-backup",
+      action: { label: "Export a backup now", onClick: () => document.getElementById("export-json").click() },
+      onDismiss: () => { backupNudgeDismissed = true; },
+    }
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -118,7 +166,11 @@ document.getElementById("export-json").addEventListener("click", () => {
   saveNow();
   downloadBlob(`desmos-grader-${stamp()}.json`, "application/json",
     JSON.stringify(getState(), null, 2));
-  ctx.announce("Exported all data as JSON.");
+  markExported();
+  backupNudgeDismissed = true;   // they just did the thing we would nag about
+  document.querySelector(".banner-backup")?.remove();
+  refreshBackupLabel();
+  ctx.announce("Exported all data as JSON. This file is your backup.");
 });
 
 document.getElementById("export-csv").addEventListener("click", () => {
@@ -191,5 +243,6 @@ for (const btn of document.querySelectorAll("[data-route]")) {
 loadState();
 const warning = getStorageWarning();
 if (warning) showBanner(warning);
-subscribe(() => {});
+subscribe(refreshBackupLabel);
 render();
+maybeNudgeBackup();

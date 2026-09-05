@@ -1,3 +1,9 @@
 .DS_Store
 node_modules/
 *.log
+
+# Never commit exported student data. These are the filenames the app's
+# Export All (JSON) and Export Gradebook (CSV) buttons produce; on a public
+# GitHub Pages repo, committing one would publish student names.
+desmos-grader-*.json
+desmos-gradebook-*.csv

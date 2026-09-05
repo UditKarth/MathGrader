@@ -141,6 +141,11 @@ p { margin: 0 0 .6em; }
   border-radius: var(--radius); box-shadow: var(--shadow);
 }
 .menu-item { justify-content: flex-start; text-align: left; width: 100%; }
+.menu-status {
+  margin: 0; padding: .35rem .6rem .5rem;
+  font-size: .8rem; color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
 
 /* ---------- Buttons & fields ---------- */
 
@@ -197,6 +202,8 @@ main:focus { outline: none; }
   background: var(--danger-soft); border: 1px solid var(--danger);
 }
 .banner p { margin: 0; }
+.banner-info { background: var(--accent-soft); border-color: var(--accent); }
+.banner-action { margin-left: .25rem; }
 
 .app-foot {
   max-width: 1200px; margin: 0 auto; padding: 1.5rem 1rem 3rem;

@@ -79,20 +79,109 @@ Then visit <http://localhost:8000/>.
 
 ## Deploying to GitHub Pages
 
-The repo is already a deployable site; there is no build output to generate.
+The repo is already a deployable site: no build output, no Actions workflow, no
+dependencies. Everything is served exactly as committed.
 
-1. Push this folder to a GitHub repository, on the `main` branch.
-2. In the repository, go to **Settings → Pages**.
+### Before you deploy
+
+```bash
+node tools/check-deploy.mjs
+```
+
+This asserts the things that break *only* in production and are invisible locally:
+
+- **Case-sensitive paths.** Pages serves from Linux; macOS is case-insensitive. An import
+  written `./Chips.js` when the file is `chips.js` works on your laptop and 404s on Pages.
+  The check compares every path against the real directory entry.
+- **Root-relative paths** (`/src/app.js`), which break under a repo subpath.
+- **External/CDN references** and **runtime `fetch()`**, neither of which this app uses.
+- A missing `.nojekyll`, and stale generated data.
+
+### Steps
+
+1. Create a GitHub repository and push this folder to `main`:
+
+   ```bash
+   git remote add origin https://github.com/<your-user>/<your-repo>.git
+   git push -u origin main
+   ```
+
+   The repo must be **public** for Pages on a free account (GitHub Pro or an
+   organization plan is required to serve a private repo).
+
+2. In the repository: **Settings → Pages**.
 3. Under **Build and deployment → Source**, choose **Deploy from a branch**.
 4. Set **Branch** to `main` and the folder to **`/ (root)`**. Click **Save**.
-5. Wait for the Pages action to finish, then open
+5. Wait for the deployment to finish, then open
    `https://<your-user>.github.io/<your-repo>/`.
 
-Every asset is referenced with a relative path (`./src/app.js`, `./src/styles.css`), so the
-app works from a repo subpath as well as from a domain root. `.nojekyll` is committed so
-Pages serves every path as-is instead of running Jekyll over it.
+No workflow file is needed. Branch deploys publish on every push to `main`.
 
----
+### Why it works under a subpath
+
+Pages serves a project site from `https://<user>.github.io/<repo>/`, not from a domain root.
+Every asset here is referenced relatively (`./src/app.js`, `./src/styles.css`) and the app
+never `fetch()`es anything, so it resolves correctly at any depth. `.nojekyll` is committed
+so Pages serves paths as-is instead of running Jekyll, which would ignore
+underscore-prefixed files.
+
+### After you deploy: the 10-minute cache
+
+GitHub Pages serves assets with `Cache-Control: max-age=600` (verified against a live
+`github.io` site). After you push a change, browsers may keep the old files for up to ten
+minutes. Because this app ships several ES modules, a reload inside that window can briefly
+mix old and new files.
+
+It resolves itself within ten minutes. To see a change immediately, hard-reload
+(<kbd>Cmd/Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>). Avoid deploying in the middle of a
+grading session.
+
+## Saving on GitHub Pages
+
+**Saving works on Pages exactly as it does locally** — `localStorage` needs no server, and
+Pages serves over HTTPS, which is a normal, persistent storage context. A fully-scored class
+of 30 students across all 62 questions is about **55 KB**, against a typical 5 MB per-origin
+quota — roughly 90× headroom. (The same data in cookies would have been 14× *over* the 4 KB
+cookie limit, which is why this app does not use them.)
+
+What changes on Pages is not *whether* it saves, but *where* that storage lives. Browser
+storage is scoped to the **origin** — `https://<your-user>.github.io` — and **not** to the
+repo path. Verified behavior, and its consequences:
+
+| Situation | What happens to the data |
+| --- | --- |
+| Rename the repo | **Survives.** The path changes, the origin doesn't. |
+| Deploy an updated version | **Survives.** Storage is independent of the files. |
+| Move to a custom domain (`grader.school.org`) | **Lost.** New origin. Export first, then import. |
+| Move to an organization account | **Lost.** New origin. Export first, then import. |
+| Teacher switches browser or device | Not there — storage is per-browser. |
+| Teacher clears browsing data | **Gone.** |
+
+Two consequences worth taking seriously:
+
+- **Every Pages project on `https://<your-user>.github.io` shares one storage area.** This
+  app namespaces its key (`desmos-grader:v1`) so it will not collide, but any other page you
+  host on that same user account *can read this data*, student names included. If that
+  matters, host it on a dedicated account or an organization — and follow the app's advice to
+  use first names or initials.
+- **Safari** evicts script-writable storage for sites left un-visited for an extended period.
+  A gradebook untouched over a long break may not be there when school resumes.
+
+### So the backup is the real save
+
+Because of all of the above, the JSON export is not a nice-to-have — it is the only copy that
+survives a cleared browser, a new device, or an origin change. The app now tracks this:
+
+- The **Data ▾** menu shows **Last backup: never / today / N days ago**.
+- Once there are real scores and no backup within 7 days, a banner offers
+  **Export a backup now**. It is dismissible, and disappears as soon as you export.
+
+Encourage the teacher to export at the end of each grading session and keep the file
+somewhere backed up. Import restores it on any browser, device, or origin.
+
+**Never commit an export into the repo.** On a public Pages repo that publishes student
+names. `.gitignore` already excludes `desmos-grader-*.json` and `desmos-gradebook-*.csv`,
+and `tools/check-deploy.mjs` fails if one is present.
 
 ## Regenerating the data from the CSV
 
@@ -130,6 +219,7 @@ distinct standards** — filtered from the CSV's 151 rows.
 ```bash
 node tools/check-data.mjs      # data shape, ordering, and standard-description coverage
 node tools/check-scoring.mjs   # the scoring rules, incl. "a blank is not a zero"
+node tools/check-deploy.mjs    # GitHub Pages readiness (see Deploying, above)
 ```
 
 `check-data.mjs` asserts that every standard code appearing in `QUESTIONS` has an entry in
@@ -246,6 +336,7 @@ tools/
   build-data.mjs                  CSV -> src/data/standards.js
   check-data.mjs                  data + description-coverage assertions
   check-scoring.mjs               scoring-rule assertions
+  check-deploy.mjs                GitHub Pages readiness (case-sensitivity, paths, …)
 ```
 
 ## Two ways to enter scores

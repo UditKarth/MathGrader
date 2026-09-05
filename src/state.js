@@ -20,6 +20,10 @@ export function emptyState() {
   return {
     version: STATE_VERSION,
     teacherName: "",
+    // When the teacher last downloaded a JSON backup. Browser storage is the
+    // only copy this app has, and on GitHub Pages it lives on an origin whose
+    // data can be cleared or evicted, so we track this to nudge for a backup.
+    lastExportedAt: null,
     roster: [],
     pointsPossible: {},
     scores: {},
@@ -60,6 +64,7 @@ export function normalizeState(raw) {
   const next = {
     version: STATE_VERSION,
     teacherName: typeof raw.teacherName === "string" ? raw.teacherName : "",
+    lastExportedAt: typeof raw.lastExportedAt === "string" ? raw.lastExportedAt : null,
     roster: roster
       .filter((s) => s && typeof s.id === "string" && typeof s.name === "string")
       .map((s) => ({
@@ -194,6 +199,28 @@ export function clearStorageWarning() {
 
 function newId(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Record that the teacher just downloaded a JSON backup. */
+export function markExported() {
+  mutate((s) => { s.lastExportedAt = new Date().toISOString(); });
+}
+
+/** Whole days since the last JSON backup, or null if there has never been one. */
+export function daysSinceExport() {
+  const at = state.lastExportedAt;
+  if (!at) return null;
+  const then = Date.parse(at);
+  if (!Number.isFinite(then)) return null;
+  return Math.floor((Date.now() - then) / 86400000);
+}
+
+/** True when there is real work at risk and no recent backup of it. */
+export function backupIsStale(maxAgeDays = 7) {
+  const hasScores = Object.values(state.scores).some((row) => Object.keys(row).length > 0);
+  if (!hasScores) return false;
+  const days = daysSinceExport();
+  return days === null || days >= maxAgeDays;
 }
 
 export function setTeacherName(name) {
