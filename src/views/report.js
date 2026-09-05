@@ -59,7 +59,11 @@ export function renderReport(root, ctx, studentId) {
     el("footer", { class: "report-foot" },
       el("p", { class: "footnote", text: DOUBLE_COUNT_FOOTNOTE }),
       el("p", { class: "footnote", text: "Percentages use only questions that have been scored. Questions left blank are not counted as zeros." }),
-      el("p", { class: "footnote", text: "Kindergarten (K.*) standards are readiness standards the Grade 1 curriculum revisits early in the year." })
+      el("p", { class: "footnote", text: "Based on End Unit Assessments." }),
+      // Only worth explaining when a K standard actually appears on this report.
+      rows.some((r) => r.isPrerequisite)
+        ? el("p", { class: "footnote", text: "Kindergarten (K.*) standards are readiness standards the Grade 1 curriculum revisits early in the year." })
+        : null
     )
   );
 
@@ -92,7 +96,7 @@ function renderOverall(overall) {
 function renderStandards(rows, ctx) {
   const section = el("section", { class: "report-section" },
     el("h3", { text: "By standard" }),
-    el("p", { class: "muted small", text: "How this student is doing on each standard they have been assessed on." })
+    el("p", { class: "muted small", text: "How this student is doing on each standard covered by the End Unit Assessments they have taken." })
   );
 
   if (!rows.length) {

@@ -1,7 +1,9 @@
 /**
  * Gradebook screen: students (rows) × the selected assessment's questions
- * (columns). 151 columns at once would be unusable, so the teacher picks a
- * unit + assessment first.
+ * (columns). All 62 questions at once would be unusable, so the teacher picks
+ * a unit first. The app is scoped to End Unit Assessments, so that is normally
+ * the only choice per unit and the assessment selector stays hidden; it appears
+ * automatically if the data build is ever widened to include more assessments.
  *
  * Keyboard model (this is the primary data-entry surface):
  *   ArrowUp/Down/Left/Right — move between cells
@@ -42,7 +44,7 @@ export function renderGradebook(root, ctx) {
   root.append(
     el("header", { class: "screen-head" },
       el("h2", { text: "Gradebook" }),
-      el("p", { class: "muted", text: "Pick a unit and assessment, then type the points each student earned. Leave a cell blank if they have not been assessed on it — blank is not a zero." })
+      el("p", { class: "muted", text: "Pick a unit, then type the points each student earned. Every question is worth 1 point unless you change its max. Leave a cell blank if they have not been assessed on it — blank is not a zero." })
     ),
     renderSelector(ctx, group)
   );
@@ -74,20 +76,30 @@ function renderSelector(ctx, group) {
   }, UNITS.map((u) => el("option", { value: String(u), selected: u === ui.unit, text: `Unit ${u}` })));
 
   const groups = groupsForUnit(ui.unit);
-  const assessmentSelect = el("select", {
-    class: "input select", id: "assessment-select",
-    onchange: (e) => { ui.assessmentKey = e.target.value; ctx.rerender(); },
-  }, groups.map((g) => el("option", {
-    value: g.assessmentKey,
-    selected: group && g.assessmentKey === group.assessmentKey,
-    text: `${g.assessment} (${g.questionIds.length} question${g.questionIds.length === 1 ? "" : "s"})`,
-  })));
+
+  // With one assessment per unit there is nothing to choose, so show the name
+  // instead of a single-option dropdown the teacher would have to click through.
+  const assessmentField =
+    groups.length > 1
+      ? el("label", { class: "field", for: "assessment-select" },
+          el("span", { class: "field-label", text: "Assessment" }),
+          el("select", {
+            class: "input select", id: "assessment-select",
+            onchange: (e) => { ui.assessmentKey = e.target.value; ctx.rerender(); },
+          }, groups.map((g) => el("option", {
+            value: g.assessmentKey,
+            selected: group && g.assessmentKey === group.assessmentKey,
+            text: `${g.assessment} (${g.questionIds.length} question${g.questionIds.length === 1 ? "" : "s"})`,
+          }))))
+      : el("div", { class: "field" },
+          el("span", { class: "field-label", text: "Assessment" }),
+          el("p", { class: "selector-static", id: "assessment-static" },
+            group ? `${group.assessment} · ${group.questionIds.length} questions` : "—"));
 
   return el("section", { class: "card selector" },
     el("label", { class: "field", for: "unit-select" },
       el("span", { class: "field-label", text: "Unit" }), unitSelect),
-    el("label", { class: "field", for: "assessment-select" },
-      el("span", { class: "field-label", text: "Assessment" }), assessmentSelect)
+    assessmentField
   );
 }
 

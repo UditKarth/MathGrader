@@ -11,7 +11,7 @@ globalThis.window = { localStorage: {
 
 const S = await import("../src/state.js");
 const C = await import("../src/scoring.js");
-const { ASSESSMENTS, QUESTIONS_BY_ID } = await import("../src/data/standards.js");
+const { ASSESSMENTS, QUESTIONS_BY_ID, QUESTIONS } = await import("../src/data/standards.js");
 
 let fails = 0;
 const eq = (label, got, want) => {
@@ -136,7 +136,7 @@ eq("clearing a score removes the key, not sets 0", (S.setScore(a.id,q[0],null), 
 S.markAllCorrect(b.id, q);
 eq("mark all correct → 100%", C.tally(b.id, q).pct, 100);
 const csv = C.gradebookCsv(S.getState().roster).split("\r\n");
-eq("CSV has a header + 151 rows per student", csv.length, 1 + 151 * S.getState().roster.length);
+eq(`CSV has a header + ${QUESTIONS.length} rows per student`, csv.length, 1 + QUESTIONS.length * S.getState().roster.length);
 const anaZero = csv.find(l => l.startsWith("Ana R.") && l.includes(",0,1,assessed"));
 eq("CSV writes a real 0 as 0", Boolean(anaZero), true);
 const blankRow = csv.find(l => l.startsWith("Cleo Q."));

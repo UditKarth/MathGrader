@@ -4,8 +4,9 @@
  *   node tools/check-data.mjs
  * Exits non-zero and prints every miss if anything is wrong.
  */
-import { QUESTIONS, ASSESSMENTS, ALL_STANDARD_CODES } from "../src/data/standards.js";
+import { QUESTIONS, ASSESSMENTS, ALL_STANDARD_CODES, INCLUDED_ASSESSMENT_KEYS } from "../src/data/standards.js";
 import { STANDARD_DESCRIPTIONS } from "../src/data/standardDescriptions.js";
+import { normalizeAssessment } from "./build-data.mjs";
 
 const failures = [];
 const ok = (label, cond, detail = "") => {
@@ -13,9 +14,16 @@ const ok = (label, cond, detail = "") => {
   if (!cond) failures.push(label);
 };
 
-ok("151 questions", QUESTIONS.length === 151, `got ${QUESTIONS.length}`);
-ok("31 unit/assessment groups", ASSESSMENTS.length === 31, `got ${ASSESSMENTS.length}`);
-ok("32 distinct standards", ALL_STANDARD_CODES.length === 32, `got ${ALL_STANDARD_CODES.length}`);
+// Scope: End Unit Assessments only (62 of the CSV's 151 rows).
+ok("62 questions", QUESTIONS.length === 62, `got ${QUESTIONS.length}`);
+ok("7 end-unit assessments", ASSESSMENTS.length === 7, `got ${ASSESSMENTS.length}`);
+ok("23 distinct standards", ALL_STANDARD_CODES.length === 23, `got ${ALL_STANDARD_CODES.length}`);
+ok("one assessment per unit", new Set(ASSESSMENTS.map((a) => a.unit)).size === ASSESSMENTS.length);
+ok(
+  "only in-scope assessments were emitted",
+  QUESTIONS.every((q) => INCLUDED_ASSESSMENT_KEYS.includes(q.assessmentKey)),
+  [...new Set(QUESTIONS.map((q) => q.assessmentKey))].join(", ")
+);
 
 // The trailing-space duplicate must have collapsed: each unit has at most one
 // group per assessment key.
@@ -28,11 +36,20 @@ for (const a of ASSESSMENTS) {
 }
 ok("no duplicate unit/assessment keys", dupes.length === 0, dupes.join(", "));
 
-const sub3 = ASSESSMENTS.filter((a) => a.assessmentKey === "SUB_UNIT_3_QUIZ");
+// The trailing-space collapse now happens upstream of the scope filter, so
+// assert it against the normalizer itself rather than the emitted data.
+const withSpace = normalizeAssessment("SUB UNIT 3 QUIZ ");
+const noSpace = normalizeAssessment("SUB UNIT 3 QUIZ");
 ok(
-  '"SUB UNIT 3 QUIZ" / "SUB UNIT 3 QUIZ " collapsed',
-  sub3.every((a) => a.assessment === "Sub Unit 3 Quiz"),
-  sub3.map((a) => `U${a.unit}:${a.questionIds.length}q`).join(" ")
+  '"SUB UNIT 3 QUIZ" / "SUB UNIT 3 QUIZ " normalize identically',
+  withSpace.key === noSpace.key && withSpace.name === noSpace.name,
+  `${withSpace.key} vs ${noSpace.key}`
+);
+ok(
+  'trailing spaces trimmed on every assessment name',
+  ["PRE-UNIT CHECK ", "SUB UNIT 1 QUIZ ", "END UNIT ASSESSMENT"].every(
+    (raw) => normalizeAssessment(raw).name === normalizeAssessment(raw).name.trim()
+  )
 );
 
 // Group question counts must sum to the question total (nothing dropped).
@@ -57,9 +74,12 @@ const missing = used.filter((c) => !STANDARD_DESCRIPTIONS[c]);
 ok("every used standard is described", missing.length === 0,
    missing.length ? `missing: ${missing.join(", ")}` : `${used.length} codes`);
 
+// Descriptions intentionally cover all 32 CSV codes, including the 9 that only
+// appear on out-of-scope assessments — so widening the scope needs no new prose.
 const unused = Object.keys(STANDARD_DESCRIPTIONS).filter((c) => !used.includes(c));
-ok("no orphan descriptions", unused.length === 0,
-   unused.length ? `unused: ${unused.join(", ")}` : "");
+console.log(`INFO  ${unused.length} description(s) kept for out-of-scope standards: ${unused.join(", ") || "(none)"}`);
+ok("all 32 CSV standards still described", Object.keys(STANDARD_DESCRIPTIONS).length === 32,
+   `got ${Object.keys(STANDARD_DESCRIPTIONS).length}`);
 
 // Descriptions are actually plain-English sentences, not placeholders.
 const thin = Object.values(STANDARD_DESCRIPTIONS).filter(

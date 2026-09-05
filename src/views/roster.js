@@ -5,7 +5,7 @@ import {
   getState, addStudent, addStudents, renameStudent, deleteStudent,
 } from "../state.js";
 import { overallFor, formatPercent, bandFor } from "../scoring.js";
-import { QUESTIONS } from "../data/standards.js";
+import { QUESTIONS, UNITS, ASSESSMENTS } from "../data/standards.js";
 
 const SAMPLE_CLASS = [
   "Ana R.", "Ben T.", "Camila S.", "Dev P.", "Elena M.",
@@ -19,7 +19,7 @@ export function renderRoster(root, ctx) {
   root.append(
     el("header", { class: "screen-head" },
       el("h2", { text: "Class roster" }),
-      el("p", { class: "muted", text: `${state.roster.length} student${state.roster.length === 1 ? "" : "s"} · ${QUESTIONS.length} questions across 7 units` })
+      el("p", { class: "muted", text: `${state.roster.length} student${state.roster.length === 1 ? "" : "s"} · ${ASSESSMENTS.length} End Unit Assessments · ${QUESTIONS.length} questions across ${UNITS.length} units` })
     )
   );
 
@@ -89,11 +89,11 @@ function renderEmptyState(ctx) {
   return el("section", { class: "card empty" },
     el("h3", { text: "No students yet" }),
     el("p", {
-      text: "This app turns raw Desmos Math assessment scores into a per-standard report for each first grader — the view you actually need for report cards and conferences.",
+      text: "This app turns Desmos Math End Unit Assessment scores into a per-standard report for each first grader — the view you actually need for report cards and conferences.",
     }),
     el("ol", { class: "steps" },
       el("li", { text: "Add your students above (or paste the whole roster)." }),
-      el("li", { text: "Open the Gradebook, pick a unit and assessment, and type the scores." }),
+      el("li", { text: "Open the Gradebook, pick a unit, and type the scores. Each question is worth 1 point unless you change it." }),
       el("li", { text: "Open a student's report to see how they are doing on each standard." })
     ),
     el("button", {
