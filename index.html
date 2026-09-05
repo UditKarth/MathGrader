@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grade 1 Standards Grader · Desmos Math</title>
+<meta name="description" content="Turn Desmos Math Grade 1 assessment scores into a per-standard report for each student. All data stays in your browser." />
+<link rel="stylesheet" href="./src/styles.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📐</text></svg>" />
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="app-bar no-print">
+  <div class="app-bar-inner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">📐</span>
+      <div>
+        <h1>Grade 1 Standards Grader</h1>
+        <p class="brand-sub">Desmos Math · per-standard reports</p>
+      </div>
+    </div>
+
+    <nav class="tabs" aria-label="Screens">
+      <button type="button" class="tab" data-route="roster">Roster</button>
+      <button type="button" class="tab" data-route="gradebook">Gradebook</button>
+    </nav>
+
+    <div class="bar-tools">
+      <p id="save-indicator" class="save-indicator" aria-live="polite" role="status">All changes saved locally</p>
+      <details class="menu">
+        <summary class="btn">Data ▾</summary>
+        <div class="menu-body">
+          <button type="button" class="btn menu-item" id="export-json">Export All (JSON)</button>
+          <button type="button" class="btn menu-item" id="export-csv">Export Gradebook (CSV)</button>
+          <button type="button" class="btn menu-item" id="import-json">Import (JSON)…</button>
+          <button type="button" class="btn menu-item btn-danger" id="clear-all">Clear all data…</button>
+          <input type="file" id="import-file" accept="application/json,.json" hidden />
+        </div>
+      </details>
+    </div>
+  </div>
+</header>
+
+<div id="banner-host" class="no-print"></div>
+
+<main id="main" tabindex="-1"></main>
+
+<p id="live-region" class="sr-only" aria-live="polite" role="status"></p>
+
+<footer class="app-foot no-print">
+  <p><strong>Privacy:</strong> everything you type stays in this browser. Nothing is uploaded to a server, and there is no account. Because of that, clearing your browser data or switching computers loses the gradebook — use <em>Export All (JSON)</em> to keep a backup.</p>
+  <p>Please use first names or initials rather than full student names.</p>
+</footer>
+
+<dialog id="standard-dialog" class="dialog">
+  <div class="dialog-body"></div>
+  <form method="dialog">
+    <button type="submit" class="btn btn-primary dialog-close">Close</button>
+  </form>
+</dialog>
+
+<script type="module" src="./src/app.js"></script>
+</body>
+</html>

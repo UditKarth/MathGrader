@@ -1,0 +1,195 @@
+/**
+ * app.js — shell: navigation, data import/export, the standard-description
+ * dialog, and the save indicator.
+ */
+
+import { el, clear, confirmAction, downloadBlob } from "./dom.js";
+import {
+  loadState, getState, subscribe, onSaveStatus, replaceState, mergeState,
+  clearAll, getStorageWarning, clearStorageWarning, saveNow, STATE_VERSION,
+} from "./state.js";
+import { gradebookCsv } from "./scoring.js";
+import { describeStandard, isPrerequisite, DOMAINS } from "./data/standardDescriptions.js";
+import { renderRoster } from "./views/roster.js";
+import { renderGradebook } from "./views/gradebook.js";
+import { renderReport } from "./views/report.js";
+
+const route = { name: "roster", studentId: null };
+
+const main = document.getElementById("main");
+const liveRegion = document.getElementById("live-region");
+const saveIndicator = document.getElementById("save-indicator");
+const bannerHost = document.getElementById("banner-host");
+const dialog = document.getElementById("standard-dialog");
+
+const ctx = {
+  rerender: render,
+  navigate(name) { route.name = name; route.studentId = null; render(); focusMain(); },
+  openReport(studentId) { route.name = "report"; route.studentId = studentId; render(); focusMain(); },
+  announce(msg) { liveRegion.textContent = msg; },
+  showStandard,
+};
+
+function focusMain() {
+  window.scrollTo({ top: 0 });
+  main.focus({ preventScroll: true });
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+
+function render() {
+  syncNav();
+  if (route.name === "gradebook") renderGradebook(main, ctx);
+  else if (route.name === "report" && route.studentId) renderReport(main, ctx, route.studentId);
+  else renderRoster(main, ctx);
+}
+
+function syncNav() {
+  for (const btn of document.querySelectorAll("[data-route]")) {
+    const active = btn.dataset.route === route.name ||
+      (route.name === "report" && btn.dataset.route === "roster");
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-current", active ? "page" : "false");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Save indicator
+// ---------------------------------------------------------------------------
+
+onSaveStatus((status) => {
+  const text = {
+    idle: "All changes saved locally",
+    saving: "Saving…",
+    saved: "All changes saved locally",
+    error: "Not saved — storage unavailable",
+  }[status];
+  saveIndicator.textContent = text;
+  saveIndicator.classList.toggle("save-error", status === "error");
+});
+
+// ---------------------------------------------------------------------------
+// Banners
+// ---------------------------------------------------------------------------
+
+function showBanner(message, tone = "warn") {
+  const banner = el("div", { class: `banner banner-${tone}`, role: "status" },
+    el("p", { text: message }),
+    el("button", {
+      type: "button", class: "btn btn-small", text: "Dismiss",
+      onclick: () => { banner.remove(); clearStorageWarning(); },
+    })
+  );
+  bannerHost.append(banner);
+}
+
+// ---------------------------------------------------------------------------
+// Standard description dialog
+// ---------------------------------------------------------------------------
+
+function showStandard(code) {
+  const info = describeStandard(code);
+  const body = dialog.querySelector(".dialog-body");
+  clear(body).append(
+    el("h3", { class: "dialog-title", text: info.code },
+      isPrerequisite(code) ? el("span", { class: "tag", text: "Kindergarten readiness" }) : null),
+    el("p", { class: "dialog-domain", text: DOMAINS[info.domain] || info.domain }),
+    el("p", { class: "dialog-short", text: info.shortLabel }),
+    el("p", { class: "dialog-desc", text: info.description })
+  );
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", "");
+}
+
+dialog.addEventListener("click", (e) => { if (e.target === dialog) dialog.close(); });
+dialog.querySelector(".dialog-close").addEventListener("click", () => dialog.close());
+
+// ---------------------------------------------------------------------------
+// Import / export
+// ---------------------------------------------------------------------------
+
+function stamp() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+document.getElementById("export-json").addEventListener("click", () => {
+  saveNow();
+  downloadBlob(`desmos-grader-${stamp()}.json`, "application/json",
+    JSON.stringify(getState(), null, 2));
+  ctx.announce("Exported all data as JSON.");
+});
+
+document.getElementById("export-csv").addEventListener("click", () => {
+  const state = getState();
+  if (!state.roster.length) { ctx.announce("Nothing to export yet — add a student first."); return; }
+  downloadBlob(`desmos-gradebook-${stamp()}.csv`, "text/csv;charset=utf-8",
+    gradebookCsv(state.roster));
+  ctx.announce("Exported the gradebook as CSV.");
+});
+
+const importInput = document.getElementById("import-file");
+document.getElementById("import-json").addEventListener("click", () => importInput.click());
+
+importInput.addEventListener("change", async () => {
+  const file = importInput.files?.[0];
+  importInput.value = "";
+  if (!file) return;
+  let parsed;
+  try {
+    parsed = JSON.parse(await file.text());
+  } catch {
+    window.alert("That file is not valid JSON.");
+    return;
+  }
+  if (parsed?.version !== STATE_VERSION) {
+    window.alert(`This file says version ${JSON.stringify(parsed?.version)}, but this app reads version ${STATE_VERSION}. It was not imported.`);
+    return;
+  }
+  const count = Array.isArray(parsed.roster) ? parsed.roster.length : 0;
+  const replace = confirmAction(
+    `Import ${count} student${count === 1 ? "" : "s"} from "${file.name}".\n\n` +
+    `OK = REPLACE everything currently in this browser.\n` +
+    `Cancel = choose merge instead.`
+  );
+  try {
+    if (replace) {
+      replaceState(parsed);
+      ctx.announce("Imported and replaced all data.");
+    } else {
+      if (!confirmAction("Merge this file into the current gradebook instead? Students with the same name are combined, and imported scores win on conflicts.")) return;
+      mergeState(parsed);
+      ctx.announce("Merged the imported data.");
+    }
+    route.name = "roster";
+    route.studentId = null;
+    render();
+  } catch (err) {
+    window.alert(`Import failed: ${err.message}`);
+  }
+});
+
+document.getElementById("clear-all").addEventListener("click", () => {
+  if (!confirmAction("Delete every student and every score stored in this browser? This cannot be undone. Export first if you want a backup.")) return;
+  if (!confirmAction("Really clear everything?")) return;
+  clearAll();
+  route.name = "roster";
+  route.studentId = null;
+  render();
+  ctx.announce("Cleared all data.");
+});
+
+for (const btn of document.querySelectorAll("[data-route]")) {
+  btn.addEventListener("click", () => ctx.navigate(btn.dataset.route));
+}
+
+// ---------------------------------------------------------------------------
+// Boot
+// ---------------------------------------------------------------------------
+
+loadState();
+const warning = getStorageWarning();
+if (warning) showBanner(warning);
+subscribe(() => {});
+render();
