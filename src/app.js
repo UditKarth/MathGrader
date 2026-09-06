@@ -29,6 +29,7 @@ const ctx = {
   openReport(studentId) { route.name = "report"; route.studentId = studentId; render(); focusMain(); },
   announce(msg) { liveRegion.textContent = msg; },
   showStandard,
+  showStandards,
 };
 
 function focusMain() {
@@ -137,18 +138,38 @@ function maybeNudgeBackup() {
 // Standard description dialog
 // ---------------------------------------------------------------------------
 
-function showStandard(code) {
+function standardBlock(code) {
   const info = describeStandard(code);
-  const body = dialog.querySelector(".dialog-body");
-  clear(body).append(
+  return el("section", { class: "dialog-standard" },
     el("h3", { class: "dialog-title", text: info.code },
       isPrerequisite(code) ? el("span", { class: "tag", text: "Kindergarten readiness" }) : null),
     el("p", { class: "dialog-domain", text: DOMAINS[info.domain] || info.domain }),
     el("p", { class: "dialog-short", text: info.shortLabel }),
     el("p", { class: "dialog-desc", text: info.description })
   );
+}
+
+function openDialog() {
   if (typeof dialog.showModal === "function") dialog.showModal();
   else dialog.setAttribute("open", "");
+}
+
+function showStandard(code) {
+  clear(dialog.querySelector(".dialog-body")).append(standardBlock(code));
+  openDialog();
+}
+
+/**
+ * Several standards at once — a gradebook question may align to more than one,
+ * and its header now opens all of them together instead of one chip at a time.
+ */
+function showStandards(codes, heading) {
+  const body = dialog.querySelector(".dialog-body");
+  clear(body).append(
+    heading ? el("p", { class: "dialog-eyebrow", text: heading }) : null,
+    ...codes.map(standardBlock)
+  );
+  openDialog();
 }
 
 dialog.addEventListener("click", (e) => { if (e.target === dialog) dialog.close(); });

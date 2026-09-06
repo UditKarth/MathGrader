@@ -21,7 +21,8 @@ import {
   markAllCorrect, clearRow,
 } from "../state.js";
 import { tally, formatPercent, bandFor } from "../scoring.js";
-import { standardChip } from "./chips.js";
+import { attachTooltip } from "./tooltip.js";
+import { describeStandard } from "../data/standardDescriptions.js";
 
 /** Screen-local selection, kept across re-renders. */
 const ui = { unit: UNITS[0], assessmentKey: null };
@@ -125,17 +126,36 @@ function renderGrid(state, group, ctx) {
           ctx.rerender();
         },
       });
-      // Q number and max points share a line; the chips wrap underneath. Two
-      // stacked rows here instead of three keeps the sticky header short.
+      // The standards live in a hover/focus tooltip rather than as chips, so a
+      // column need only be as wide as "Q13". Stacking the number over the max
+      // input, rather than sitting them side by side, means the column is
+      // sized by the wider of the two instead of by their sum — that is what
+      // lets a 13-question assessment fit without horizontal scrolling.
+      const described = q.standards.map((c) => describeStandard(c));
+      const qButton = el("button", {
+        type: "button", class: "q-num-btn",
+        // Native title as a baseline; the styled tooltip layers on top of it.
+        title: `${q.standards.join(", ")} — click for descriptions`,
+        "aria-label": `Question ${q.questionNumber}, aligned to ${q.standards.join(", ")}. Show descriptions.`,
+        onclick: () => ctx.showStandards(q.standards, `Question ${q.questionNumber}`),
+      }, `Q${q.questionNumber}`);
+
+      attachTooltip(qButton, () =>
+        el("div", { class: "tip-standards" },
+          el("div", { class: "tip-head", text: `Question ${q.questionNumber}` }),
+          el("ul", { class: "tip-list" }, described.map((d) =>
+            el("li", {},
+              el("span", { class: "tip-code", text: d.code }),
+              el("span", { class: "tip-label", text: d.shortLabel })
+            ))),
+          el("div", { class: "tip-hint", text: "Click for the full description" })
+        ));
+
       return el("th", { scope: "col", class: "q-head" },
-        el("div", { class: "q-top" },
-          el("span", { class: "q-num", text: `Q${q.questionNumber}` }),
-          // "/" reads as "out of" and costs a third of the width the word
-          // "max" did; the input keeps a full aria-label and tooltip.
-          el("label", { class: "max-field" },
-            el("span", { class: "max-label", "aria-hidden": "true", text: "/" }), maxInput)
-        ),
-        el("div", { class: "chips" }, q.standards.map((code) => standardChip(code, ctx)))
+        qButton,
+        el("label", { class: "max-field" },
+          el("span", { class: "sr-only", text: `Points possible for question ${q.questionNumber}` }),
+          maxInput)
       );
     }),
     el("th", { scope: "col", class: "sticky-right", text: "Score" }),

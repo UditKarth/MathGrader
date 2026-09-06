@@ -38,8 +38,10 @@ already committed, and the report re-enables its Kindergarten explainer on its o
   whole year, rather than one assessment across the whole class — which is what you want for
   a make-up test, a re-take, or a single corrected answer.
 - **Gradebook** — bulk entry for a whole class. Pick a unit, then type scores into a
-  students × questions grid. Each
-  question column carries the standards it's aligned to and an editable max-points field.
+  students × questions grid. Every End Unit Assessment — including the 13-question Unit 4 —
+  fits a full class on one screen with no scrolling. Each question column shows its number
+  and an editable max-points field; the standards it aligns to appear in a tooltip on hover
+  or keyboard focus, and clicking the question number opens their full descriptions.
   **Every question defaults to 1 point**, and a teacher can change any question's max on the
   fly; percentages, proficiency bands, and the report all recalculate immediately, for the
   whole class. Fully keyboard-driven.
