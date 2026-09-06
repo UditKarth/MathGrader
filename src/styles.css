@@ -22,10 +22,15 @@
   --danger:        #a4232b;
   --danger-soft:   #fbe7e8;
 
-  --band-exceeding:   #14603a;
-  --band-meeting:     #1f5fbf;
+  --band-exceeding:   #14663d;
+  --band-meeting:     #4a6a12;
   --band-approaching: #8a5300;
   --band-support:     #a4232b;
+
+  /* Saturation/lightness for the mastery ramp; hue is set per element. */
+  --mastery-sat: 62%;
+  --mastery-light: 42%;
+  --mastery-track: #e2e6ee;
 
   --radius: 12px;
   --radius-sm: 8px;
@@ -53,9 +58,13 @@
     --danger-soft:   #3a1d20;
 
     --band-exceeding:   #6fd6a4;
-    --band-meeting:     #8bb7ff;
+    --band-meeting:     #b6d76a;
     --band-approaching: #f3c168;
     --band-support:     #ff9b9b;
+
+    --mastery-sat: 58%;
+    --mastery-light: 55%;
+    --mastery-track: #2b3342;
 
     --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 30%);
     --focus: 3px solid #8bb7ff;
@@ -413,6 +422,19 @@ thead th { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; 
 .report-meta { display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: flex-end; }
 .teacher-input { min-width: 16rem; }
 
+.report-scope-title {
+  margin: 0 0 .4rem; font-size: 1rem; font-weight: 600; color: var(--text-muted);
+}
+
+.scope-toggle {
+  display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+  padding: .7rem .8rem; margin-bottom: 1.2rem;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.scope-pills { display: flex; gap: .4rem; flex-wrap: wrap; }
+.unit-pill.is-year { min-width: auto; padding: .4rem 1rem; }
+
 .report-section { margin-bottom: 1.8rem; }
 .overall-grid { display: flex; gap: 2.5rem; flex-wrap: wrap; }
 .stat-value { font-size: 2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -446,6 +468,58 @@ thead th { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; 
 
 .report-foot { border-top: 1px solid var(--border); padding-top: .8rem; }
 .footnote { font-size: .8rem; color: var(--text-muted); margin-bottom: .4rem; }
+
+/* ---------- Mastery bar & scale ---------- */
+
+.mastery-bar {
+  display: block; width: 100%; min-width: 3.5rem; height: 8px;
+  background: var(--mastery-track);
+  border-radius: 999px; overflow: hidden;
+}
+.mastery-fill {
+  display: block; height: 100%; border-radius: 999px;
+  background: hsl(var(--mastery-hue) var(--mastery-sat) var(--mastery-light));
+}
+.mastery-fill.is-empty {
+  background: repeating-linear-gradient(
+    -45deg, var(--mastery-track), var(--mastery-track) 3px,
+    transparent 3px, transparent 6px
+  );
+}
+.mastery-with-label { display: flex; flex-direction: column; gap: .2rem; }
+.mastery-label { font-size: .78rem; color: var(--text-muted); }
+
+.overall .mastery-bar { height: 12px; }
+
+.std-bar { min-width: 5rem; width: 6rem; }
+
+.mastery-scale {
+  display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+  padding: .6rem .7rem; margin-top: .5rem;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.mastery-scale-track {
+  flex: 1 1 6rem; min-width: 5rem; height: 8px; border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    hsl(4 var(--mastery-sat) var(--mastery-light)),
+    hsl(22 var(--mastery-sat) var(--mastery-light)) 40%,
+    hsl(45 var(--mastery-sat) var(--mastery-light)) 60%,
+    hsl(95 var(--mastery-sat) var(--mastery-light)) 80%,
+    hsl(140 var(--mastery-sat) var(--mastery-light))
+  );
+}
+.mastery-scale-keys {
+  display: flex; gap: .8rem; flex-wrap: wrap;
+  list-style: none; margin: 0; padding: 0;
+}
+.mastery-scale-keys li { display: flex; align-items: center; gap: .3rem; }
+.mastery-swatch {
+  width: 12px; height: 12px; border-radius: 3px; flex: 0 0 auto;
+  background: hsl(var(--mastery-hue) var(--mastery-sat) var(--mastery-light));
+}
+.mastery-swatch.is-empty { background: var(--mastery-track); }
 
 /* ---------- Dialog ---------- */
 
@@ -502,11 +576,18 @@ thead th { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; 
     --band-exceeding: #000; --band-meeting: #000;
     --band-approaching: #000; --band-support: #000;
     --shadow: none;
+
+    /* The print block must restate these: without them a reader whose OS is in
+       dark mode would print bars on a dark navy track. */
+    --mastery-track: #e4e4e4;
+    --mastery-sat: 60%;
+    --mastery-light: 45%;
   }
 
   body { background: #fff; color: #000; font-size: 11pt; }
 
   .no-print,
+  .scope-toggle,
   .quick-row,
   .quick-edit,
   .app-bar,
@@ -546,6 +627,20 @@ thead th { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; 
   .table-wrap { overflow: visible; }
 
   .footnote { font-size: 8.5pt; color: #333; }
+
+  /* Browsers drop backgrounds when printing by default, which would make the
+     mastery bars vanish. Force them, and keep a hairline outline so the bar is
+     still legible if a printer or a user setting strips colour anyway — the
+     fill LENGTH carries the same meaning as its hue. */
+  .mastery-bar, .mastery-fill, .mastery-swatch, .mastery-scale-track {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .mastery-bar { border: .5pt solid #999; height: 7pt; background: #e4e4e4; }
+  .mastery-swatch { border: .5pt solid #999; }
+  .mastery-fill.is-empty { background: #e4e4e4; }
+  .std-bar { width: 5rem; }
+  .mastery-scale { border: .5pt solid #999; background: #fff; }
+  .report-scope-title { color: #000; font-size: 11pt; }
   .overall-grid { gap: 24pt; }
   .stat-value { font-size: 16pt; }
 

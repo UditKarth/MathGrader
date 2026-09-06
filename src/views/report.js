@@ -9,8 +9,17 @@ import { getState, setTeacherName } from "../state.js";
 import {
   overallFor, standardsBreakdown, assessmentsBreakdown, groupByDomain,
   narrative, formatPercent, bandFor, DOUBLE_COUNT_FOOTNOTE, BANDS,
+  reportScopes, findScope, defaultScopeKey,
 } from "../scoring.js";
 import { standardChip } from "./chips.js";
+import { masteryBar, masteryScale } from "./mastery.js";
+
+/**
+ * Which scope the report is showing, and who it was chosen for. A report is
+ * usually run at the end of a unit, so we default to a unit rather than the
+ * whole year — the last unit this student has scores in.
+ */
+const ui = { scopeKey: null, forStudent: null };
 
 export function renderReport(root, ctx, studentId) {
   clear(root);
@@ -25,9 +34,16 @@ export function renderReport(root, ctx, studentId) {
     return;
   }
 
-  const overall = overallFor(student.id);
-  const rows = standardsBreakdown(student.id);
-  const assessments = assessmentsBreakdown(student.id);
+  // Pick a sensible scope the first time we render this student.
+  if (ui.forStudent !== student.id || !findScope(ui.scopeKey)) {
+    ui.forStudent = student.id;
+    ui.scopeKey = defaultScopeKey(student.id);
+  }
+  const scope = findScope(ui.scopeKey);
+
+  const overall = overallFor(student.id, scope.questionIds);
+  const rows = standardsBreakdown(student.id, scope.questionIds);
+  const assessments = assessmentsBreakdown(student.id, scope.unit);
   const { strengths, focus, thinEvidence } = narrative(rows);
 
   // --- toolbar (hidden in print) --------------------------------------
@@ -45,6 +61,7 @@ export function renderReport(root, ctx, studentId) {
   const report = el("article", { class: "report" },
     el("header", { class: "report-head" },
       el("h2", { class: "report-name", text: student.name }),
+      el("p", { class: "report-scope-title", text: scope.title }),
       el("div", { class: "report-meta" },
         el("div", { class: "print-only", text: state.teacherName || "Desmos Math · Grade 1" }),
         el("label", { class: "field no-print", for: "teacher-name" },
@@ -52,6 +69,7 @@ export function renderReport(root, ctx, studentId) {
         el("div", { class: "muted", text: `Report generated ${todayLong()}` })
       )
     ),
+    renderScopeToggle(scope, student, ctx),
     renderOverall(overall),
     renderStandards(rows, ctx),
     renderAssessments(assessments),
@@ -59,7 +77,10 @@ export function renderReport(root, ctx, studentId) {
     el("footer", { class: "report-foot" },
       el("p", { class: "footnote", text: DOUBLE_COUNT_FOOTNOTE }),
       el("p", { class: "footnote", text: "Percentages use only questions that have been scored. Questions left blank are not counted as zeros." }),
-      el("p", { class: "footnote", text: "Based on End Unit Assessments." }),
+      el("p", { class: "footnote",
+        text: scope.type === "unit"
+          ? `Covers the Unit ${scope.unit} End Unit Assessment only. Other units are not included in these totals.`
+          : "Covers all End Unit Assessments across the year." }),
       // Only worth explaining when a K standard actually appears on this report.
       rows.some((r) => r.isPrerequisite)
         ? el("p", { class: "footnote", text: "Kindergarten (K.*) standards are readiness standards the Grade 1 curriculum revisits early in the year." })
@@ -70,6 +91,33 @@ export function renderReport(root, ctx, studentId) {
   root.append(report);
 }
 
+/**
+ * End-of-unit vs end-of-year. Hidden in print — the chosen scope is stated in
+ * the report heading instead, so a printed page always says what it covers.
+ */
+function renderScopeToggle(scope, student, ctx) {
+  return el("section", { class: "scope-toggle no-print", role: "group", "aria-label": "Report covers" },
+    el("span", { class: "field-label", text: "Report covers" }),
+    el("div", { class: "scope-pills" },
+      reportScopes().map((s) => {
+        const t = overallFor(student.id, s.questionIds);
+        return el("button", {
+          type: "button",
+          class: `unit-pill${s.key === scope.key ? " active" : ""}${s.type === "year" ? " is-year" : ""}`,
+          "aria-pressed": s.key === scope.key ? "true" : "false",
+          title: t.assessed
+            ? `${s.label}: ${t.assessed} of ${t.total} questions scored`
+            : `${s.label}: nothing entered yet`,
+          onclick: () => { ui.scopeKey = s.key; ctx.rerender(); },
+        },
+          s.shortLabel,
+          t.assessed ? el("span", { class: "pill-dot", "aria-hidden": "true" }) : null
+        );
+      })
+    )
+  );
+}
+
 function renderOverall(overall) {
   const band = overall.assessed ? bandFor(overall.pct) : null;
   return el("section", { class: "report-section overall" },
@@ -77,9 +125,10 @@ function renderOverall(overall) {
     overall.assessed === 0
       ? el("p", { class: "big-note", text: "Not yet assessed — no scores have been entered for this student." })
       : el("div", { class: "overall-grid" },
-          el("div", { class: "stat" },
+          el("div", { class: "stat stat-main" },
             el("div", { class: `stat-value band-${band.key}`, text: formatPercent(overall.pct) }),
-            el("div", { class: "stat-label", text: band.label })
+            el("div", { class: "stat-label", text: band.label }),
+            masteryBar(overall.pct)
           ),
           el("div", { class: "stat" },
             el("div", { class: "stat-value", text: `${round(overall.earned)} / ${round(overall.possible)}` }),
@@ -89,14 +138,15 @@ function renderOverall(overall) {
             el("div", { class: "stat-value", text: `${overall.assessed}` }),
             el("div", { class: "stat-label", text: `of ${overall.total} questions assessed` })
           )
-        )
+        ),
+    overall.assessed ? masteryScale() : null
   );
 }
 
 function renderStandards(rows, ctx) {
   const section = el("section", { class: "report-section" },
     el("h3", { text: "By standard" }),
-    el("p", { class: "muted small", text: "How this student is doing on each standard covered by the End Unit Assessments they have taken." })
+    el("p", { class: "muted small", text: "How this student is doing on each standard covered by this report." })
   );
 
   if (!rows.length) {
@@ -124,6 +174,7 @@ function renderStandards(rows, ctx) {
             ? el("span", { class: `pct band-${r.band.key}`, text: formatPercent(r.pct) })
             : el("span", { class: "muted", text: "—" })
         ),
+        el("td", { class: "std-bar" }, masteryBar(r.possible > 0 ? r.pct : null)),
         el("td", { class: "band-cell", text: r.band.label }),
         el("td", { class: "small src-cell", text: r.assessments.join("; ") })
       ));
@@ -134,6 +185,7 @@ function renderStandards(rows, ctx) {
           el("th", { scope: "col", text: "Standard" }),
           el("th", { scope: "col", class: "num", text: "Points" }),
           el("th", { scope: "col", class: "num", text: "Percent" }),
+          el("th", { scope: "col", text: "Mastery" }),
           el("th", { scope: "col", text: "Proficiency" }),
           el("th", { scope: "col", text: "Assessed on" })
         )),
@@ -157,6 +209,7 @@ function renderAssessments(rows) {
       el("td", { class: "num", text: `${r.assessed} of ${r.total}` }),
       el("td", { class: "num", text: `${round(r.earned)} / ${round(r.possible)}` }),
       el("td", { class: "num" }, el("span", { class: `pct band-${r.band.key}`, text: formatPercent(r.pct) })),
+      el("td", { class: "std-bar" }, masteryBar(r.pct)),
       el("td", { text: r.band.label })
     ));
   }
@@ -167,6 +220,7 @@ function renderAssessments(rows) {
         el("th", { scope: "col", class: "num", text: "Questions scored" }),
         el("th", { scope: "col", class: "num", text: "Points" }),
         el("th", { scope: "col", class: "num", text: "Percent" }),
+        el("th", { scope: "col", text: "Mastery" }),
         el("th", { scope: "col", text: "Proficiency" })
       )), body)
   ));

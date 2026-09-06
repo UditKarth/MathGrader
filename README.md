@@ -289,7 +289,34 @@ export files harmless if one is ever misplaced.
   student with no scores at all shows "Not yet assessed" rather than `0%` or `NaN`.
 - **Rounding is for display only.** Intermediate math is never rounded.
 
-### Kindergarten standards
+### Report scope: unit vs. year
+
+A report opens on a **unit**, because that is the common case — a teacher has just finished
+grading a unit. The unit chosen is the last one that student has any scores in, decided per
+student, so opening two reports in a row does not carry one student's unit over to the next.
+
+| Scope | Overall mastery | By standard | By assessment |
+| --- | --- | --- | --- |
+| `Unit N` | that unit's questions only | standards that unit assesses | that one assessment |
+| `Full year` | every scored question | every standard assessed so far | every assessment taken |
+
+The printed page always names its scope under the student's name, and a footnote spells out
+that a unit report excludes the other units. The toggle itself is hidden in print.
+
+The roster's *Assessed* column deliberately stays year-to-date — it is a class overview, not
+a report.
+
+### The mastery scale
+
+Percentages are shown as a bar on a **grey → red → green** ramp: grey for not assessed, red
+below 60%, amber through Approaching, yellow-green through Meeting, green at Exceeding. The
+ramp's breakpoints are derived from `BANDS`, so the colour and the proficiency label can
+never disagree — change a band threshold and the colours follow.
+
+Colour is never the only signal. The bar's **length** carries the same information as its
+hue, and the band name is always printed as text beside it, so the report still reads
+correctly in greyscale, on a black-and-white printout, or for a red/green colour-blind
+reader. A legend appears on the report, including in print.
 
 Codes beginning `K.` (`K.CC.3`, `K.OA.2`, …) are readiness/prerequisite standards that the
 Grade 1 curriculum revisits early in the year. They are labelled **"K readiness"** in the

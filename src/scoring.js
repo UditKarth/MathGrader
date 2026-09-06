@@ -61,8 +61,13 @@ export function tally(studentId, questionIds) {
 
 const ALL_QUESTION_IDS = QUESTIONS.map((q) => q.id);
 
-export function overallFor(studentId) {
-  return tally(studentId, ALL_QUESTION_IDS);
+/**
+ * @param {string} studentId
+ * @param {string[]|null} questionIds limit to these questions (a report scope);
+ *   null means the whole year.
+ */
+export function overallFor(studentId, questionIds = null) {
+  return tally(studentId, questionIds || ALL_QUESTION_IDS);
 }
 
 export function assessmentTally(studentId, assessmentGroup) {
@@ -74,11 +79,13 @@ export function assessmentTally(studentId, assessmentGroup) {
  * A multi-standard question credits its full earned/possible to EACH standard
  * (see DOUBLE_COUNT_FOOTNOTE).
  */
-export function standardsBreakdown(studentId) {
+export function standardsBreakdown(studentId, questionIds = null) {
   /** @type {Map<string, {code:string, earned:number, possible:number, questions:number, assessments:Set<string>}>} */
   const acc = new Map();
 
+  const inScope = questionIds ? new Set(questionIds) : null;
   for (const q of QUESTIONS) {
+    if (inScope && !inScope.has(q.id)) continue;
     const score = getScore(studentId, q.id);
     if (score === undefined) continue;
     const possible = getPointsPossible(q.id);
@@ -129,8 +136,8 @@ export function groupByDomain(rows) {
 }
 
 /** Per-assessment breakdown, only assessments the student has entries for. */
-export function assessmentsBreakdown(studentId) {
-  return ASSESSMENTS.map((group) => ({
+export function assessmentsBreakdown(studentId, unit = null) {
+  return ASSESSMENTS.filter((g) => unit === null || g.unit === unit).map((group) => ({
     group,
     ...assessmentTally(studentId, group),
   }))
@@ -157,6 +164,74 @@ export function narrative(rows) {
 
   const thinEvidence = rows.filter((r) => r.pct !== null && r.pct < 75 && r.possible < 2);
   return { strengths, focus, thinEvidence };
+}
+
+/**
+ * The scopes a report can be run at: one per unit (an end-of-unit report) plus
+ * the whole year (an end-of-year report).
+ */
+export function reportScopes() {
+  return [
+    ...ASSESSMENTS.map((g) => ({
+      key: `unit-${g.unit}`,
+      type: "unit",
+      unit: g.unit,
+      shortLabel: `${g.unit}`,
+      label: `Unit ${g.unit}`,
+      title: `Unit ${g.unit} · ${g.assessment}`,
+      questionIds: g.questionIds,
+    })),
+    {
+      key: "year",
+      type: "year",
+      unit: null,
+      shortLabel: "Full year",
+      label: "Full year",
+      title: "Full year · all End Unit Assessments",
+      questionIds: ALL_QUESTION_IDS,
+    },
+  ];
+}
+
+export function findScope(key) {
+  const scopes = reportScopes();
+  return scopes.find((s) => s.key === key) || null;
+}
+
+/**
+ * The unit a report should open on: the last one the student has any scores
+ * for, so an end-of-unit report lands on the unit just graded. Falls back to
+ * the first unit when nothing has been entered.
+ */
+export function defaultScopeKey(studentId) {
+  const scored = ASSESSMENTS.filter((g) =>
+    g.questionIds.some((qid) => getScore(studentId, qid) !== undefined)
+  );
+  const g = scored.length ? scored[scored.length - 1] : ASSESSMENTS[0];
+  return `unit-${g.unit}`;
+}
+
+/**
+ * Hue for the grey -> red -> green mastery ramp, or null when not assessed
+ * (the views render that as grey). The ramp is piecewise so that colour and
+ * proficiency band always agree: red below Approaching, amber through
+ * Approaching, yellow-green through Meeting, green at Exceeding.
+ */
+export function masteryHue(pct) {
+  if (pct === null || pct === undefined || !Number.isFinite(pct)) return null;
+  const p = Math.max(0, Math.min(100, pct));
+  const ramp = [
+    [0, 4], [60, 22],    // Needs Support: red
+    [75, 45],            // Approaching:   orange -> amber
+    [90, 95],            // Meeting:       amber -> yellow-green
+    [100, 140],          // Exceeding:     green
+  ];
+  for (let i = 1; i < ramp.length; i++) {
+    const [x0, h0] = ramp[i - 1];
+    const [x1, h1] = ramp[i];
+    if (p <= x1) return h0 + ((p - x0) / (x1 - x0)) * (h1 - h0);
+  }
+  return 140;
 }
 
 /** Flat CSV of the whole gradebook, for Excel/Sheets. */
