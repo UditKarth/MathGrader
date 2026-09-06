@@ -45,7 +45,7 @@ export function renderGradebook(root, ctx) {
   root.append(
     el("header", { class: "screen-head" },
       el("h2", { text: "Gradebook" }),
-      el("p", { class: "muted", text: "Pick a unit, then type the points each student earned. Every question is worth 1 point unless you change its max. Leave a cell blank if they have not been assessed on it — blank is not a zero." })
+      el("p", { class: "muted small", text: "Type the points each student earned. Blank means not assessed yet — it is not a zero." })
     ),
     renderSelector(ctx, group)
   );
@@ -115,7 +115,8 @@ function renderGrid(state, group, ctx) {
       const maxInput = el("input", {
         type: "number", min: "0.5", step: "0.5", class: "input max-input",
         value: String(getPointsPossible(qid)),
-        "aria-label": `Points possible for question ${q.questionNumber}`,
+        "aria-label": `Points possible for question ${q.questionNumber} (applies to the whole class)`,
+        title: "Max points for this question — applies to the whole class",
         onchange: (e) => {
           const v = Number(e.target.value);
           if (!Number.isFinite(v) || v <= 0) { e.target.value = String(getPointsPossible(qid)); return; }
@@ -124,11 +125,17 @@ function renderGrid(state, group, ctx) {
           ctx.rerender();
         },
       });
+      // Q number and max points share a line; the chips wrap underneath. Two
+      // stacked rows here instead of three keeps the sticky header short.
       return el("th", { scope: "col", class: "q-head" },
-        el("div", { class: "q-num", text: `Q${q.questionNumber}` }),
-        el("div", { class: "chips" }, q.standards.map((code) => standardChip(code, ctx))),
-        el("label", { class: "max-field" },
-          el("span", { class: "max-label", text: "max" }), maxInput)
+        el("div", { class: "q-top" },
+          el("span", { class: "q-num", text: `Q${q.questionNumber}` }),
+          // "/" reads as "out of" and costs a third of the width the word
+          // "max" did; the input keeps a full aria-label and tooltip.
+          el("label", { class: "max-field" },
+            el("span", { class: "max-label", "aria-hidden": "true", text: "/" }), maxInput)
+        ),
+        el("div", { class: "chips" }, q.standards.map((code) => standardChip(code, ctx)))
       );
     }),
     el("th", { scope: "col", class: "sticky-right", text: "Score" }),
@@ -201,7 +208,7 @@ function renderGrid(state, group, ctx) {
 
   return el("section", { class: "card grid-card" },
     el("div", { class: "grid-scroll" }, table),
-    el("p", { class: "muted small", text: "Arrow keys move between cells · Enter moves down · Tab moves right · a blank cell means “not assessed yet” and is left out of every percentage." })
+    el("p", { class: "muted small grid-hint", text: "Arrow keys move between cells · Enter moves down · Tab moves right · every question is worth 1 point unless you change its max · blank cells are left out of every percentage." })
   );
 }
 

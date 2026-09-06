@@ -337,77 +337,125 @@ thead th { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; 
   .quick-foot { align-items: flex-start; flex-direction: column; }
 }
 
-/* ---------- Gradebook ---------- */
+/* ---------- Gradebook ----------
+   Density matters here: this is the one screen where the teacher wants to see
+   a whole assessment and a whole class at once. Columns are sized so the
+   standard chips WRAP inside a narrow column instead of forcing it wide, and
+   the per-row buttons sit side by side so a row is one input tall.
+   ------------------------------------------------------------------------ */
 
-.selector { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-start; }
+.selector { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+.selector .field { flex-direction: row; align-items: center; gap: .5rem; }
 .selector-static {
-  margin: 0; padding: .55rem 0; min-height: 44px;
+  margin: 0; padding: 0; min-height: 0;
   display: flex; align-items: center; font-weight: 600;
 }
+.card.selector { padding: .6rem .8rem; margin-bottom: .7rem; }
 
-.grid-card { padding-bottom: .8rem; }
-.grid-scroll { overflow: auto; max-height: 70vh; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.grid-card { padding: .6rem .6rem .5rem; }
+.grid-scroll {
+  overflow: auto; max-height: 74vh;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
 
-.grade-grid { border-collapse: separate; border-spacing: 0; min-width: max-content; }
+/* No min-width:max-content — that is what forced every column to fit its
+   chips on one line and blew the grid out to ~3000px. */
+.grade-grid { border-collapse: separate; border-spacing: 0; }
 .grade-grid th, .grade-grid td {
   border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
-  background: var(--surface); vertical-align: top;
+  background: var(--surface); vertical-align: middle;
 }
-.grade-grid thead th { position: sticky; top: 0; z-index: 3; background: var(--surface-2); }
+.grade-grid thead th {
+  position: sticky; top: 0; z-index: 3;
+  background: var(--surface-2); vertical-align: top;
+  padding: .3rem .25rem;
+}
 
 .grade-grid .sticky-col {
-  position: sticky; left: 0; z-index: 2; min-width: 11rem;
+  position: sticky; left: 0; z-index: 2;
+  width: 8.5rem; min-width: 8.5rem;
+  padding: .25rem .5rem;
   background: var(--surface); border-right: 2px solid var(--border-strong);
-  vertical-align: middle;
 }
 .grade-grid thead .corner { z-index: 4; background: var(--surface-2); }
 
-.grade-grid .sticky-right { position: sticky; right: 6.5rem; z-index: 2; background: var(--surface-2); min-width: 4.5rem; vertical-align: middle; }
-.grade-grid .sticky-right-2 { position: sticky; right: 0; z-index: 2; background: var(--surface-2); min-width: 6.5rem; vertical-align: middle; }
+.grade-grid .sticky-right {
+  position: sticky; right: 7.4rem; z-index: 2;
+  width: 3.4rem; min-width: 3.4rem; padding: .25rem .3rem;
+  background: var(--surface-2); text-align: right;
+}
+.grade-grid .sticky-right-2 {
+  position: sticky; right: 0; z-index: 2;
+  width: 7.4rem; min-width: 7.4rem; padding: .25rem .3rem;
+  background: var(--surface-2);
+}
 .grade-grid thead .sticky-right, .grade-grid thead .sticky-right-2 { z-index: 4; }
-.grade-grid .row-actions { display: flex; flex-direction: column; gap: .25rem; }
+.grade-grid .row-actions { display: flex; flex-direction: row; gap: .25rem; }
+.grade-grid .row-actions .btn {
+  min-height: 30px; padding: .2rem .3rem; font-size: .68rem; flex: 1 1 auto;
+  white-space: nowrap;
+}
 
-.q-head { min-width: 7.5rem; }
-.q-num { font-size: 1rem; font-weight: 700; color: var(--text); text-transform: none; letter-spacing: 0; }
-.chips { display: flex; flex-wrap: wrap; gap: .2rem; margin: .25rem 0; }
+/* Fixed narrow question columns: the chips wrap inside them. */
+.q-head, .cell { width: 4.2rem; min-width: 4.2rem; }
+.q-top { display: flex; align-items: center; justify-content: space-between; gap: .2rem; }
+.q-num {
+  font-size: .92rem; font-weight: 700; color: var(--text);
+  text-transform: none; letter-spacing: 0;
+}
+.chips { display: flex; flex-direction: column; gap: .12rem; margin-top: .2rem; }
 
 .chip {
-  font: inherit; font-size: .7rem; font-weight: 700;
-  display: inline-flex; align-items: center; gap: .2rem;
-  padding: .12rem .4rem; cursor: pointer;
+  font: inherit; font-size: .6rem; font-weight: 700; line-height: 1.25;
+  display: inline-flex; align-items: center; justify-content: space-between; gap: .15rem;
+  width: 100%; padding: .08rem .25rem; cursor: pointer;
   color: var(--accent); background: var(--accent-soft);
-  border: 1px solid transparent; border-radius: 999px;
+  border: 1px solid transparent; border-radius: 4px;
   text-transform: none; letter-spacing: 0;
 }
 .chip:hover { border-color: var(--accent); }
+.chip-code { overflow: hidden; text-overflow: ellipsis; }
 .chip-q {
-  display: inline-grid; place-items: center;
-  width: 1rem; height: 1rem; border-radius: 50%;
-  background: var(--accent); color: var(--accent-text); font-size: .62rem;
+  display: inline-grid; place-items: center; flex: 0 0 auto;
+  width: .8rem; height: .8rem; border-radius: 50%;
+  background: var(--accent); color: var(--accent-text); font-size: .55rem;
 }
 
-.max-field { display: flex; align-items: center; gap: .3rem; }
-.max-label { font-size: .7rem; color: var(--text-muted); text-transform: none; }
-.max-input { width: 4rem; min-height: 34px; padding: .2rem .35rem; font-size: .85rem; }
+.max-field { display: flex; align-items: center; gap: .15rem; }
+.max-label { font-size: .8rem; color: var(--text-muted); text-transform: none; line-height: 1; }
+.max-input {
+  width: 1.85rem; min-height: 22px; padding: .05rem .1rem;
+  font-size: .72rem; text-align: center;
+}
 
-.cell { padding: .3rem; position: relative; }
+.cell { padding: .15rem; position: relative; }
 .cell-input {
-  font: inherit; font-size: 1.05rem; text-align: center; font-variant-numeric: tabular-nums;
-  width: 100%; min-width: 4.5rem; min-height: 44px; padding: .3rem;
+  font: inherit; font-size: 1rem; text-align: center; font-variant-numeric: tabular-nums;
+  width: 100%; min-width: 0; height: 38px; padding: .15rem;
   color: var(--text); background: var(--surface);
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  border: 1px solid var(--border); border-radius: 6px;
 }
-.cell-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.cell-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
 .cell-input.over-max { border-color: var(--danger); background: var(--danger-soft); font-weight: 700; }
 .over-flag {
-  position: absolute; top: .1rem; right: .3rem;
-  color: var(--danger); font-weight: 800; font-size: .8rem;
+  position: absolute; top: 0; right: .15rem;
+  color: var(--danger); font-weight: 800; font-size: .7rem;
 }
 
 /* Hide spinners — they get in the way of fast numeric entry. */
 .cell-input::-webkit-outer-spin-button,
 .cell-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .cell-input { -moz-appearance: textfield; appearance: textfield; }
+
+.grade-grid .name-cell .linklike { font-size: .92rem; }
+.grid-hint { margin: .4rem 0 0; }
+
+@media (max-width: 720px) {
+  .grade-grid .sticky-col { width: 7rem; min-width: 7rem; }
+  .grade-grid .sticky-right { right: 5.2rem; }
+  .grade-grid .sticky-right-2 { width: 5.2rem; min-width: 5.2rem; }
+  .grade-grid .row-actions { flex-direction: column; }
+}
 
 /* ---------- Report ---------- */
 
