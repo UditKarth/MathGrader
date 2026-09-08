@@ -101,7 +101,12 @@ function renderSelector(ctx, group) {
   return el("section", { class: "card selector" },
     el("label", { class: "field", for: "unit-select" },
       el("span", { class: "field-label", text: "Unit" }), unitSelect),
-    assessmentField
+    assessmentField,
+    el("button", {
+      type: "button", class: "btn selector-action", id: "print-all",
+      title: "Print a one-page report for every student",
+      onclick: () => ctx.printAllReports(ui.unit),
+    }, "Print all reports")
   );
 }
 

@@ -373,6 +373,11 @@ thead th { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; 
   display: flex; align-items: center; font-weight: 600;
 }
 .card.selector { padding: .6rem .8rem; margin-bottom: .7rem; }
+.selector-action { margin-left: auto; }
+
+@media (max-width: 720px) {
+  .selector-action { margin-left: 0; width: 100%; }
+}
 
 .grid-card { padding: .6rem .6rem .5rem; }
 .grid-scroll {
@@ -600,6 +605,21 @@ thead th { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; 
 }
 .mastery-swatch.is-empty { background: var(--mastery-track); }
 
+/* ---------- Bulk report printing ----------
+   The sheet never shows on screen; it is filled just before window.print()
+   and emptied again afterwards. Sizes are in pt so a page's contents are
+   predictable on paper rather than dependent on the viewport.
+   ------------------------------------------------------------------------ */
+
+#bulk-print { display: none; }
+
+.dialog-field { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .6rem .8rem; margin: 0 0 .8rem; }
+.dialog-field legend { font-size: .85rem; font-weight: 700; color: var(--text-muted); padding: 0 .3rem; }
+.radio { display: flex; align-items: center; gap: .5rem; padding: .3rem 0; cursor: pointer; }
+.radio input { width: 18px; height: 18px; }
+.dialog-note { font-size: .82rem; color: var(--text-muted); margin: .8rem 0; }
+.dialog-actions { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1rem; }
+
 /* ---------- Dialog ---------- */
 
 .dialog {
@@ -732,4 +752,72 @@ thead th { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; 
   .stat-value { font-size: 16pt; }
 
   a[href]::after { content: ""; }
+
+  /* ---- Bulk: one page per student ---- */
+
+  /* While printing every student, the sheet IS the document. */
+  body.bulk-printing > *:not(#bulk-print) { display: none !important; }
+  body.bulk-printing #bulk-print { display: block !important; }
+
+  .bulk-report {
+    break-after: page; page-break-after: always;
+    break-inside: avoid-page;
+    font-size: 9pt; line-height: 1.3; color: #000;
+  }
+  .bulk-report:last-child { break-after: auto; page-break-after: auto; }
+
+  .bulk-head {
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 12pt;
+    border-bottom: 1.5pt solid #000; padding-bottom: 4pt; margin-bottom: 7pt;
+  }
+  .bulk-name { font-size: 17pt; margin: 0; }
+  .bulk-scope { margin: 1pt 0 0; font-size: 9.5pt; font-weight: 600; color: #333; }
+  .bulk-meta { text-align: right; font-size: 8.5pt; color: #333; }
+
+  .bulk-overall {
+    display: flex; align-items: center; gap: 14pt;
+    margin-bottom: 8pt; padding-bottom: 6pt; border-bottom: .5pt solid #bbb;
+  }
+  .bulk-pct { font-size: 20pt; font-weight: 800; }
+  .bulk-band { font-size: 9pt; font-weight: 600; margin-left: 5pt; }
+  .bulk-stat-meta { font-size: 8.5pt; color: #333; }
+  .bulk-overall-bar { flex: 1 1 auto; min-width: 80pt; }
+  .bulk-overall-bar .mastery-bar { height: 9pt; }
+
+  .bulk-standards h3 { font-size: 10.5pt; margin: 0 0 3pt; }
+  .bulk-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+  .bulk-table thead th {
+    text-align: left; font-size: 7.5pt; text-transform: uppercase;
+    letter-spacing: .03em; color: #444; border-bottom: .5pt solid #999;
+    padding: 2pt 3pt;
+  }
+  .bulk-table td, .bulk-table tbody th {
+    padding: 1.8pt 3pt; border-bottom: .5pt solid #ddd;
+    text-align: left; vertical-align: middle;
+  }
+  .bulk-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .bulk-domain-row th {
+    padding-top: 5pt; font-size: 7.5pt; text-transform: uppercase;
+    letter-spacing: .04em; color: #444; border-bottom: .5pt solid #bbb;
+  }
+  .bulk-std-row { break-inside: avoid; page-break-inside: avoid; }
+  .bulk-code { font-weight: 800; }
+  .bulk-label { color: #333; margin-left: 5pt; }
+  .bulk-tag {
+    font-size: 6.5pt; font-weight: 700; border: .5pt solid #888;
+    border-radius: 2pt; padding: 0 2pt; margin-left: 3pt;
+  }
+  .bulk-bar-cell { width: 52pt; }
+  .bulk-bar-cell .mastery-bar { height: 6pt; }
+  .bulk-band-cell { width: 70pt; font-weight: 600; white-space: nowrap; }
+
+  .bulk-narrative { margin-top: 7pt; font-size: 8.5pt; }
+  .bulk-narrative p { margin: 0 0 2pt; }
+  .bulk-empty { font-size: 10pt; color: #333; margin-top: 10pt; }
+
+  .bulk-foot {
+    margin-top: 7pt; padding-top: 4pt; border-top: .5pt solid #bbb;
+    font-size: 7pt; color: #444;
+  }
+  .bulk-foot p { margin: 0 0 1.5pt; }
 }

@@ -55,6 +55,37 @@
   <p>Please use first names or initials rather than full student names.</p>
 </footer>
 
+<!-- Populated only while printing every student's report; empty otherwise. -->
+<div id="bulk-print" aria-hidden="true"></div>
+
+<dialog id="bulk-dialog" class="dialog">
+  <form method="dialog" id="bulk-form">
+    <h3 class="dialog-title">Print a report for every student</h3>
+    <p class="dialog-desc" id="bulk-summary"></p>
+
+    <fieldset class="dialog-field">
+      <legend>Report covers</legend>
+      <label class="radio"><input type="radio" name="bulk-scope" value="unit" checked /> <span id="bulk-scope-unit">This unit</span></label>
+      <label class="radio"><input type="radio" name="bulk-scope" value="year" /> <span>Full year — all End Unit Assessments</span></label>
+    </fieldset>
+
+    <label class="radio">
+      <input type="checkbox" id="bulk-include-empty" />
+      <span>Include students with no scores in this range</span>
+    </label>
+
+    <p class="dialog-note">
+      Your browser prints these as one document, one page per student — choose
+      <strong>Save as PDF</strong> in the print dialog to keep them as a single file.
+    </p>
+
+    <div class="dialog-actions">
+      <button type="submit" value="cancel" class="btn">Cancel</button>
+      <button type="submit" value="print" class="btn btn-primary" id="bulk-confirm">Print reports</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="standard-dialog" class="dialog">
   <div class="dialog-body"></div>
   <form method="dialog">

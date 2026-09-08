@@ -45,6 +45,12 @@ already committed, and the report re-enables its Kindergarten explainer on its o
   **Every question defaults to 1 point**, and a teacher can change any question's max on the
   fly; percentages, proficiency bands, and the report all recalculate immediately, for the
   whole class. Fully keyboard-driven.
+- **Print all reports** — from the Gradebook, one page per student in a single print job.
+  Choose the current unit or the full year, and whether to include students with no scores
+  yet. Browsers cannot write several files from one print action, so this is one document
+  with one page per student — choose *Save as PDF* in the print dialog to keep it as a single
+  file. The bulk page is a condensed layout (short labels instead of full sentences) so that
+  every standard fits one page even at full-year scope; `tools/check-print.mjs` guards that.
 - **Individual Report** — overall mastery, a by-standard breakdown with proficiency bands,
   a by-assessment breakdown, strengths and focus areas, and **Export as PDF**.
 
@@ -222,6 +228,7 @@ distinct standards** — filtered from the CSV's 151 rows.
 node tools/check-data.mjs      # data shape, ordering, and standard-description coverage
 node tools/check-scoring.mjs   # the scoring rules, incl. "a blank is not a zero"
 node tools/check-deploy.mjs    # GitHub Pages readiness (see Deploying, above)
+node tools/check-print.mjs     # bulk reports still fit one page per student
 ```
 
 `check-data.mjs` asserts that every standard code appearing in `QUESTIONS` has an entry in
@@ -353,6 +360,8 @@ src/
   views/
     roster.js                     home / roster screen
     quickEdit.js                  the inline per-student score panel on the roster
+    bulkPrint.js                  one-page-per-student printing from the gradebook
+    tooltip.js                    hover/focus tooltip that escapes the grid's clipping
     chips.js                      shared standard chip with its `?` description popover
     gradebook.js                  the data-entry grid
     report.js                     the individual report
@@ -366,6 +375,7 @@ tools/
   check-data.mjs                  data + description-coverage assertions
   check-scoring.mjs               scoring-rule assertions
   check-deploy.mjs                GitHub Pages readiness (case-sensitivity, paths, …)
+  check-print.mjs                 row budget for the one-page bulk reports
 ```
 
 ## Two ways to enter scores

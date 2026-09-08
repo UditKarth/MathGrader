@@ -14,6 +14,8 @@ import { describeStandard, isPrerequisite, DOMAINS } from "./data/standardDescri
 import { renderRoster } from "./views/roster.js";
 import { renderGradebook } from "./views/gradebook.js";
 import { renderReport } from "./views/report.js";
+import { printAllReports, studentsWithData } from "./views/bulkPrint.js";
+import { findScope, reportScopes } from "./scoring.js";
 
 const route = { name: "roster", studentId: null };
 
@@ -30,6 +32,7 @@ const ctx = {
   announce(msg) { liveRegion.textContent = msg; },
   showStandard,
   showStandards,
+  printAllReports: openBulkDialog,
 };
 
 function focusMain() {
@@ -174,6 +177,65 @@ function showStandards(codes, heading) {
 
 dialog.addEventListener("click", (e) => { if (e.target === dialog) dialog.close(); });
 dialog.querySelector(".dialog-close").addEventListener("click", () => dialog.close());
+
+// ---------------------------------------------------------------------------
+// Bulk report printing
+// ---------------------------------------------------------------------------
+
+const bulkDialog = document.getElementById("bulk-dialog");
+const bulkForm = document.getElementById("bulk-form");
+let bulkUnit = null;
+
+function bulkScopeFor(kind) {
+  return kind === "year" ? findScope("year") : findScope(`unit-${bulkUnit}`);
+}
+
+function refreshBulkSummary() {
+  const kind = bulkForm.elements["bulk-scope"].value;
+  const scope = bulkScopeFor(kind);
+  const includeEmpty = document.getElementById("bulk-include-empty").checked;
+  const roster = getState().roster;
+  const withData = studentsWithData(roster, scope);
+  const count = includeEmpty ? roster.length : withData.length;
+
+  document.getElementById("bulk-summary").textContent =
+    `${count} page${count === 1 ? "" : "s"} — one per student. ` +
+    `${withData.length} of ${roster.length} student${roster.length === 1 ? "" : "s"} have scores in this range.`;
+  document.getElementById("bulk-confirm").disabled = count === 0;
+}
+
+function openBulkDialog(unit) {
+  const roster = getState().roster;
+  if (!roster.length) {
+    window.alert("Add students to the roster before printing reports.");
+    return;
+  }
+  bulkUnit = unit;
+  const unitScope = findScope(`unit-${unit}`);
+  document.getElementById("bulk-scope-unit").textContent = unitScope
+    ? `${unitScope.label} — ${unitScope.questionIds.length} questions`
+    : "This unit";
+  bulkForm.elements["bulk-scope"].value = "unit";
+  document.getElementById("bulk-include-empty").checked = false;
+  refreshBulkSummary();
+  if (typeof bulkDialog.showModal === "function") bulkDialog.showModal();
+  else bulkDialog.setAttribute("open", "");
+}
+
+bulkForm.addEventListener("change", refreshBulkSummary);
+
+bulkForm.addEventListener("submit", (e) => {
+  // The dialog's returnValue is the submitter's value: cancel or print.
+  if ((e.submitter && e.submitter.value) !== "print") return;
+  const scope = bulkScopeFor(bulkForm.elements["bulk-scope"].value);
+  const includeUnassessed = document.getElementById("bulk-include-empty").checked;
+  // Let the dialog finish closing before the print dialog opens, otherwise the
+  // modal is still in the layout when the browser snapshots the page.
+  setTimeout(() => {
+    const pages = printAllReports(scope, { includeUnassessed });
+    ctx.announce(`Prepared ${pages} report page${pages === 1 ? "" : "s"} for printing.`);
+  }, 50);
+});
 
 // ---------------------------------------------------------------------------
 // Import / export
