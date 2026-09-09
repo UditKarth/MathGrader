@@ -9,7 +9,7 @@
  */
 
 import { el } from "../dom.js";
-import { masteryHue, bandFor, formatPercent, BANDS } from "../scoring.js";
+import { masteryHue, bandFor, formatPercent, BANDS, bandRange } from "../scoring.js";
 
 /**
  * @param {number|null} pct
@@ -65,7 +65,7 @@ export function masteryScale() {
             style: `--mastery-hue:${masteryHue(mid).toFixed(1)}`,
             "aria-hidden": "true",
           }),
-          el("span", { class: "small", text: `${b.label} ${b.key === "support" ? "under 60%" : `${b.min}%+`}` })
+          el("span", { class: "small", text: `${b.label} ${bandRange(b)}` })
         );
       })
     )

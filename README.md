@@ -278,7 +278,7 @@ export files harmless if one is ever misplaced.
 - **Max points is a property of the question, not the student.** Setting "Q3 is worth 2
   points" applies to the whole class, and every percentage and band updates immediately.
   Changing Q1 of a 6-question assessment from 1 point to 5, for a student who got Q1 right
-  and 4 of the other 5, moves them from 5/6 (83%, Meeting) to 5/10 (50%, Needs Support).
+  and 4 of the other 5, moves them from 5/6 (83%, Proficient) to 5/10 (50%, Below Basic).
 - **Over-max entries are flagged, not clamped.** Typing `5` into a 1-point question shows a
   visible warning and keeps your number, rather than silently rewriting it.
 - **Multi-standard questions credit their full earned/possible to *each* aligned standard.**
@@ -289,13 +289,19 @@ export files harmless if one is ever misplaced.
 
   | Band | Range |
   | --- | --- |
-  | Exceeding | ≥ 90% |
-  | Meeting | 75–89% |
-  | Approaching | 60–74% |
-  | Needs Support | < 60% |
+  | Advanced | ≥ 90% |
+  | Proficient | 75–89% |
+  | Basic | 60–74% |
+  | Below Basic | 40–59% |
+  | Needs Help | < 40% |
 
   A standard with no points possible shows **"Not yet assessed"** rather than a band, and a
   student with no scores at all shows "Not yet assessed" rather than `0%` or `NaN`.
+
+  **Proficient** is the target band: the report's "Strengths" lists standards at Proficient
+  or above and "Focus areas" lists those below it, both derived from `TARGET_BAND` so the
+  narrative can never disagree with the table beside it. The printed ranges are derived too
+  (`bandRange`), so changing a threshold never leaves a stale "75–89%" next to a band name.
 - **Rounding is for display only.** Intermediate math is never rounded.
 
 ### Report scope: unit vs. year
@@ -317,10 +323,11 @@ a report.
 
 ### The mastery scale
 
-Percentages are shown as a bar on a **grey → red → green** ramp: grey for not assessed, red
-below 60%, amber through Approaching, yellow-green through Meeting, green at Exceeding. The
-ramp's breakpoints are derived from `BANDS`, so the colour and the proficiency label can
-never disagree — change a band threshold and the colours follow.
+Percentages are shown as a bar on a **grey → red → green** ramp: grey for not assessed, deep
+red through Needs Help, red through Below Basic, amber through Basic, yellow-green through
+Proficient, green at Advanced. The ramp turns at the band thresholds, so the colour and the
+proficiency label can never disagree — a bar that looks amber is always in the amber band.
+Change a band threshold and the colours follow.
 
 Colour is never the only signal. The bar's **length** carries the same information as its
 hue, and the band name is always printed as text beside it, so the report still reads

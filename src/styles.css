@@ -22,10 +22,11 @@
   --danger:        #a4232b;
   --danger-soft:   #fbe7e8;
 
-  --band-exceeding:   #14663d;
-  --band-meeting:     #4a6a12;
-  --band-approaching: #8a5300;
-  --band-support:     #a4232b;
+  --band-advanced:    #14663d;
+  --band-proficient:  #4a6a12;
+  --band-basic:       #8a5300;
+  --band-below-basic: #a8451f;
+  --band-needs-help:  #93151e;
 
   /* Saturation/lightness for the mastery ramp; hue is set per element. */
   --mastery-sat: 62%;
@@ -57,10 +58,11 @@
     --danger:        #ff9b9b;
     --danger-soft:   #3a1d20;
 
-    --band-exceeding:   #6fd6a4;
-    --band-meeting:     #b6d76a;
-    --band-approaching: #f3c168;
-    --band-support:     #ff9b9b;
+    --band-advanced:    #6fd6a4;
+    --band-proficient:  #b6d76a;
+    --band-basic:       #f3c168;
+    --band-below-basic: #ffb08a;
+    --band-needs-help:  #ff8f8f;
 
     --mastery-sat: 58%;
     --mastery-light: 55%;
@@ -244,10 +246,11 @@ thead th { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; 
 .name-input { max-width: 16rem; }
 
 .pct { font-weight: 700; font-variant-numeric: tabular-nums; }
-.band-exceeding   { color: var(--band-exceeding); }
-.band-meeting     { color: var(--band-meeting); }
-.band-approaching { color: var(--band-approaching); }
-.band-support     { color: var(--band-support); }
+.band-advanced    { color: var(--band-advanced); }
+.band-proficient  { color: var(--band-proficient); }
+.band-basic       { color: var(--band-basic); }
+.band-below-basic { color: var(--band-below-basic); }
+.band-needs-help  { color: var(--band-needs-help); }
 .band-none        { color: var(--text-muted); }
 
 /* ---------- Standard chips ----------
@@ -679,8 +682,8 @@ thead th { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; 
     --bg: #ffffff; --surface: #ffffff; --surface-2: #ffffff;
     --text: #000000; --text-muted: #333333;
     --border: #bbbbbb; --border-strong: #666666;
-    --band-exceeding: #000; --band-meeting: #000;
-    --band-approaching: #000; --band-support: #000;
+    --band-advanced: #000; --band-proficient: #000; --band-basic: #000;
+    --band-below-basic: #000; --band-needs-help: #000;
     --shadow: none;
 
     /* The print block must restate these: without them a reader whose OS is in

@@ -9,7 +9,7 @@ import { getState, setTeacherName } from "../state.js";
 import {
   overallFor, standardsBreakdown, assessmentsBreakdown, groupByDomain,
   narrative, formatPercent, bandFor, DOUBLE_COUNT_FOOTNOTE, BANDS,
-  reportScopes, findScope, defaultScopeKey,
+  reportScopes, findScope, defaultScopeKey, bandRange, TARGET_BAND,
 } from "../scoring.js";
 import { standardChip } from "./chips.js";
 import { masteryBar, masteryScale } from "./mastery.js";
@@ -243,17 +243,17 @@ function renderNarrative(strengths, focus, thin) {
     el("div", { class: "two-col" },
       el("div", {},
         el("h4", { text: "Strengths" }),
-        list(strengths, "No standards are at Meeting or above yet.")
+        list(strengths, `No standards are at ${TARGET_BAND.label} or above yet.`)
       ),
       el("div", {},
         el("h4", { text: "Focus areas" }),
-        list(focus, "No standards are below Meeting with enough evidence to flag.")
+        list(focus, `No standards are below ${TARGET_BAND.label} with enough evidence to flag.`)
       )
     ),
     thin.length
       ? el("p", { class: "muted small", text: `Watching, but too little evidence to judge yet: ${thin.map((r) => r.code).join(", ")}.` })
       : null,
-    el("p", { class: "muted small", text: `Bands: ${BANDS.map((b) => `${b.label} ${b.key === "support" ? "under 60%" : `${b.min}%+`}`).join(" · ")}.` })
+    el("p", { class: "muted small", text: `Bands: ${BANDS.map((b) => `${b.label} ${bandRange(b)}`).join(" · ")}.` })
   );
 }
 

@@ -11,13 +11,35 @@ import { QUESTIONS, QUESTIONS_BY_ID, ASSESSMENTS } from "./data/standards.js";
 import { describeStandard, isPrerequisite, DOMAIN_ORDER, DOMAINS } from "./data/standardDescriptions.js";
 import { getPointsPossible, getScore } from "./state.js";
 
-/** Proficiency bands. Change them here and the whole app follows. */
+/**
+ * Proficiency bands, highest first. Change them here and the whole app
+ * follows — colours, the report, the legend, and the printed pages all derive
+ * from this table rather than hardcoding names or thresholds.
+ */
 export const BANDS = [
-  { key: "exceeding",   label: "Exceeding",     min: 90 },
-  { key: "meeting",     label: "Meeting",       min: 75 },
-  { key: "approaching", label: "Approaching",   min: 60 },
-  { key: "support",     label: "Needs Support", min: 0 },
+  { key: "advanced",    label: "Advanced",    min: 90 },
+  { key: "proficient",  label: "Proficient",  min: 75 },
+  { key: "basic",       label: "Basic",       min: 60 },
+  { key: "below-basic", label: "Below Basic", min: 40 },
+  { key: "needs-help",  label: "Needs Help",  min: 0 },
 ];
+
+/**
+ * The band a student is working toward. Strengths are at or above it, focus
+ * areas below it, so that narrative always matches the table beside it.
+ */
+export const TARGET_BAND = BANDS.find((b) => b.key === "proficient");
+
+/**
+ * "90%+", "75–89%", "under 40%" — derived so a threshold change never leaves a
+ * stale range printed next to a band name.
+ */
+export function bandRange(band) {
+  const next = BANDS.filter((b) => b.min > band.min).sort((a, b) => a.min - b.min)[0];
+  if (!next) return `${band.min}%+`;
+  if (band.min === 0) return `under ${next.min}%`;
+  return `${band.min}–${next.min - 1}%`;
+}
 
 export const NOT_ASSESSED = { key: "none", label: "Not yet assessed", min: null };
 
@@ -153,16 +175,16 @@ export function assessmentsBreakdown(studentId, unit = null) {
  */
 export function narrative(rows) {
   const strengths = rows
-    .filter((r) => r.pct !== null && r.pct >= 75)
+    .filter((r) => r.pct !== null && r.pct >= TARGET_BAND.min)
     .sort((a, b) => b.pct - a.pct || b.possible - a.possible)
     .slice(0, 5);
 
   const focus = rows
-    .filter((r) => r.pct !== null && r.pct < 75 && r.possible >= 2)
+    .filter((r) => r.pct !== null && r.pct < TARGET_BAND.min && r.possible >= 2)
     .sort((a, b) => a.pct - b.pct || b.possible - a.possible)
     .slice(0, 5);
 
-  const thinEvidence = rows.filter((r) => r.pct !== null && r.pct < 75 && r.possible < 2);
+  const thinEvidence = rows.filter((r) => r.pct !== null && r.pct < TARGET_BAND.min && r.possible < 2);
   return { strengths, focus, thinEvidence };
 }
 
@@ -213,18 +235,20 @@ export function defaultScopeKey(studentId) {
 
 /**
  * Hue for the grey -> red -> green mastery ramp, or null when not assessed
- * (the views render that as grey). The ramp is piecewise so that colour and
- * proficiency band always agree: red below Approaching, amber through
- * Approaching, yellow-green through Meeting, green at Exceeding.
+ * (the views render that as grey). The ramp turns at the band thresholds, so
+ * colour and proficiency band can never disagree: a bar that looks amber is
+ * always in the amber band.
  */
 export function masteryHue(pct) {
   if (pct === null || pct === undefined || !Number.isFinite(pct)) return null;
   const p = Math.max(0, Math.min(100, pct));
   const ramp = [
-    [0, 4], [60, 22],    // Needs Support: red
-    [75, 45],            // Approaching:   orange -> amber
-    [90, 95],            // Meeting:       amber -> yellow-green
-    [100, 140],          // Exceeding:     green
+    [0, 4],              // Needs Help:  deep red
+    [40, 12],            // Below Basic: red
+    [60, 22],            // Basic:       red-orange -> amber
+    [75, 45],            // Proficient:  amber -> yellow-green
+    [90, 95],            // Advanced:    green
+    [100, 140],
   ];
   for (let i = 1; i < ramp.length; i++) {
     const [x0, h0] = ramp[i - 1];

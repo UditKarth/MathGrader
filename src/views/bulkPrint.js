@@ -19,7 +19,7 @@ import { el, clear, todayLong } from "../dom.js";
 import { getState } from "../state.js";
 import {
   overallFor, standardsBreakdown, groupByDomain, narrative,
-  formatPercent, bandFor, DOUBLE_COUNT_FOOTNOTE,
+  formatPercent, bandFor, DOUBLE_COUNT_FOOTNOTE, TARGET_BAND,
 } from "../scoring.js";
 import { masteryBar } from "./mastery.js";
 
@@ -113,9 +113,9 @@ function onePageReport(student, scope, teacherName) {
   page.append(
     el("section", { class: "bulk-narrative" },
       el("p", {}, el("strong", { text: "Strengths: " }),
-        strengths.length ? names(strengths.slice(0, 3)) : "None at Meeting or above yet."),
+        strengths.length ? names(strengths.slice(0, 3)) : `None at ${TARGET_BAND.label} or above yet.`),
       el("p", {}, el("strong", { text: "Focus areas: " }),
-        focus.length ? names(focus.slice(0, 3)) : "None below Meeting with enough evidence to flag.")
+        focus.length ? names(focus.slice(0, 3)) : `None below ${TARGET_BAND.label} with enough evidence to flag.`)
     ),
     el("footer", { class: "bulk-foot" },
       el("p", { text: DOUBLE_COUNT_FOOTNOTE }),

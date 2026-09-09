@@ -107,14 +107,34 @@ S.deleteStudent(d.id);
 S.setPointsPossible(multi.id, 1);
 
 // --- bands ---
-eq("90 → Exceeding", C.bandFor(90).label, "Exceeding");
-eq("89.9 → Meeting", C.bandFor(89.9).label, "Meeting");
-eq("75 → Meeting", C.bandFor(75).label, "Meeting");
-eq("74.9 → Approaching", C.bandFor(74.9).label, "Approaching");
-eq("60 → Approaching", C.bandFor(60).label, "Approaching");
-eq("59.9 → Needs Support", C.bandFor(59.9).label, "Needs Support");
-eq("0 → Needs Support", C.bandFor(0).label, "Needs Support");
+eq("100 → Advanced", C.bandFor(100).label, "Advanced");
+eq("90 → Advanced", C.bandFor(90).label, "Advanced");
+eq("89.9 → Proficient", C.bandFor(89.9).label, "Proficient");
+eq("75 → Proficient", C.bandFor(75).label, "Proficient");
+eq("74.9 → Basic", C.bandFor(74.9).label, "Basic");
+eq("60 → Basic", C.bandFor(60).label, "Basic");
+eq("59.9 → Below Basic", C.bandFor(59.9).label, "Below Basic");
+eq("40 → Below Basic", C.bandFor(40).label, "Below Basic");
+eq("39.9 → Needs Help", C.bandFor(39.9).label, "Needs Help");
+eq("0 → Needs Help", C.bandFor(0).label, "Needs Help");
 eq("null → Not yet assessed", C.bandFor(null).label, "Not yet assessed");
+
+// The rubric itself: five bands, ordered, contiguous, starting at 0.
+eq("five bands, highest first", C.BANDS.map((b) => b.label),
+   ["Advanced", "Proficient", "Basic", "Below Basic", "Needs Help"]);
+eq("bands are strictly descending", C.BANDS.every((b, i) => i === 0 || b.min < C.BANDS[i - 1].min), true);
+eq("lowest band starts at 0 (no score is unbanded)", C.BANDS[C.BANDS.length - 1].min, 0);
+eq("printed ranges", C.BANDS.map((b) => `${b.label} ${C.bandRange(b)}`).join(" · "),
+   "Advanced 90%+ · Proficient 75–89% · Basic 60–74% · Below Basic 40–59% · Needs Help under 40%");
+
+// Colour must never contradict the label: each band owns a distinct hue range.
+const hueAt = (p) => C.masteryHue(p);
+eq("hue rises with score", [0, 40, 60, 75, 90, 100].every((p, i, a) => i === 0 || hueAt(p) > hueAt(a[i - 1])), true);
+eq("a failing score is never green", hueAt(59.9) < 30, true);
+eq("an Advanced score is green", hueAt(95) > 100, true);
+
+// Strengths/focus split follows the target band rather than a magic number.
+eq("target band is Proficient", C.TARGET_BAND.label, "Proficient");
 
 // --- no rounding of intermediates ---
 eq("1/3 keeps full precision internally", C.percentage(1,3), (1/3)*100);
