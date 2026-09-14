@@ -199,7 +199,7 @@ function refreshBulkSummary() {
   const count = includeEmpty ? roster.length : withData.length;
 
   document.getElementById("bulk-summary").textContent =
-    `${count} page${count === 1 ? "" : "s"} — one per student. ` +
+    `${count} student${count === 1 ? "" : "s"}, each starting on a new page. ` +
     `${withData.length} of ${roster.length} student${roster.length === 1 ? "" : "s"} have scores in this range.`;
   document.getElementById("bulk-confirm").disabled = count === 0;
 }
@@ -216,6 +216,7 @@ function openBulkDialog(unit) {
     ? `${unitScope.label} — ${unitScope.questionIds.length} questions`
     : "This unit";
   bulkForm.elements["bulk-scope"].value = "unit";
+  bulkForm.elements["bulk-detail"].value = "full";
   document.getElementById("bulk-include-empty").checked = false;
   refreshBulkSummary();
   if (typeof bulkDialog.showModal === "function") bulkDialog.showModal();
@@ -229,11 +230,12 @@ bulkForm.addEventListener("submit", (e) => {
   if ((e.submitter && e.submitter.value) !== "print") return;
   const scope = bulkScopeFor(bulkForm.elements["bulk-scope"].value);
   const includeUnassessed = document.getElementById("bulk-include-empty").checked;
+  const compact = bulkForm.elements["bulk-detail"].value === "compact";
   // Let the dialog finish closing before the print dialog opens, otherwise the
   // modal is still in the layout when the browser snapshots the page.
   setTimeout(() => {
-    const pages = printAllReports(scope, { includeUnassessed });
-    ctx.announce(`Prepared ${pages} report page${pages === 1 ? "" : "s"} for printing.`);
+    const pages = printAllReports(scope, { includeUnassessed, compact });
+    ctx.announce(`Prepared reports for ${pages} student${pages === 1 ? "" : "s"} for printing.`);
   }, 50);
 });
 

@@ -52,26 +52,51 @@ export function renderReport(root, ctx, studentId) {
     el("button", { type: "button", class: "btn btn-primary", text: "Export as PDF", onclick: () => window.print() })
   ));
 
-  const teacherInput = el("input", {
-    type: "text", class: "input teacher-input", id: "teacher-name",
-    value: state.teacherName, placeholder: "e.g. Ms. Rivera — Room 12",
-    onchange: (e) => { setTeacherName(e.target.value); ctx.rerender(); },
-  });
+  root.append(buildReportArticle(student, scope, state, ctx, { interactive: true }));
+}
 
-  const report = el("article", { class: "report" },
+/**
+ * The report itself, shared by the on-screen view and by bulk printing.
+ *
+ * Both paths render from this one function on purpose. They used to be two
+ * hand-written implementations, and the printed one silently drifted: it had
+ * lost the whole "By assessment" section, the per-standard descriptions and
+ * "Assessed on" column, the mastery legend, and three of the footnotes. A
+ * single builder means a section added here appears in both, or in neither.
+ *
+ * `interactive` is the only difference: the on-screen report gets the scope
+ * toggle, an editable class/teacher field, and clickable standard chips. Bulk
+ * pages get none of those — they are never on screen and never clicked.
+ */
+export function buildReportArticle(student, scope, state, ctx, { interactive = true } = {}) {
+  const overall = overallFor(student.id, scope.questionIds);
+  const rows = standardsBreakdown(student.id, scope.questionIds);
+  const assessments = assessmentsBreakdown(student.id, scope.unit);
+  const { strengths, focus, thinEvidence } = narrative(rows);
+
+  const teacherField = interactive
+    ? el("label", { class: "field no-print", for: "teacher-name" },
+        el("span", { class: "field-label", text: "Class / teacher" }),
+        el("input", {
+          type: "text", class: "input teacher-input", id: "teacher-name",
+          value: state.teacherName, placeholder: "e.g. Ms. Rivera — Room 12",
+          onchange: (e) => { setTeacherName(e.target.value); ctx.rerender(); },
+        }))
+    : null;
+
+  return el("article", { class: "report" },
     el("header", { class: "report-head" },
       el("h2", { class: "report-name", text: student.name }),
       el("p", { class: "report-scope-title", text: scope.title }),
       el("div", { class: "report-meta" },
         el("div", { class: "print-only", text: state.teacherName || "Desmos Math · Grade 1" }),
-        el("label", { class: "field no-print", for: "teacher-name" },
-          el("span", { class: "field-label", text: "Class / teacher" }), teacherInput),
+        teacherField,
         el("div", { class: "muted", text: `Report generated ${todayLong()}` })
       )
     ),
-    renderScopeToggle(scope, student, ctx),
+    interactive ? renderScopeToggle(scope, student, ctx) : null,
     renderOverall(overall),
-    renderStandards(rows, ctx),
+    renderStandards(rows, ctx, { interactive }),
     renderAssessments(assessments),
     renderNarrative(strengths, focus, thinEvidence),
     el("footer", { class: "report-foot" },
@@ -87,8 +112,6 @@ export function renderReport(root, ctx, studentId) {
         : null
     )
   );
-
-  root.append(report);
 }
 
 /**
@@ -143,7 +166,7 @@ function renderOverall(overall) {
   );
 }
 
-function renderStandards(rows, ctx) {
+function renderStandards(rows, ctx, { interactive = true } = {}) {
   const section = el("section", { class: "report-section" },
     el("h3", { text: "By standard" }),
     el("p", { class: "muted small", text: "How this student is doing on each standard covered by this report." })
@@ -163,7 +186,7 @@ function renderStandards(rows, ctx) {
           el("div", { class: "std-code-line" },
             el("span", { class: "std-code", text: r.code }),
             r.isPrerequisite ? el("span", { class: "tag", text: "K readiness" }) : null,
-            el("span", { class: "no-print" }, standardChip(r.code, ctx))
+            interactive ? el("span", { class: "no-print" }, standardChip(r.code, ctx)) : null
           ),
           el("div", { class: "std-label", text: r.info.shortLabel }),
           el("div", { class: "std-desc", text: r.info.description })
@@ -187,7 +210,7 @@ function renderStandards(rows, ctx) {
           el("th", { scope: "col", class: "num", text: "Percent" }),
           el("th", { scope: "col", text: "Mastery" }),
           el("th", { scope: "col", text: "Proficiency" }),
-          el("th", { scope: "col", text: "Assessed on" })
+          el("th", { scope: "col", class: "src-col", text: "Assessed on" })
         )),
         body
       )

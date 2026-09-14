@@ -756,71 +756,67 @@ thead th { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; 
 
   a[href]::after { content: ""; }
 
-  /* ---- Bulk: one page per student ---- */
+  /* ---- Bulk: every student, one page break between them ----
+     The pages are the same .report markup as the on-screen report, so they
+     inherit every print rule above. Only paging and a slightly tighter scale
+     are specific to bulk. */
 
-  /* While printing every student, the sheet IS the document. */
   body.bulk-printing > *:not(#bulk-print) { display: none !important; }
   body.bulk-printing #bulk-print { display: block !important; }
 
-  .bulk-report {
-    break-after: page; page-break-after: always;
-    break-inside: avoid-page;
-    font-size: 9pt; line-height: 1.3; color: #000;
-  }
+  .bulk-report { break-after: page; page-break-after: always; }
   .bulk-report:last-child { break-after: auto; page-break-after: auto; }
 
-  .bulk-head {
-    display: flex; justify-content: space-between; align-items: flex-end; gap: 12pt;
-    border-bottom: 1.5pt solid #000; padding-bottom: 4pt; margin-bottom: 7pt;
-  }
-  .bulk-name { font-size: 17pt; margin: 0; }
-  .bulk-scope { margin: 1pt 0 0; font-size: 9.5pt; font-weight: 600; color: #333; }
-  .bulk-meta { text-align: right; font-size: 8.5pt; color: #333; }
+  /* A touch denser than a single printed report: a stack of 30 of these is
+     paper, and the on-screen report's spacing is generous for one. */
+  .bulk-report .report { font-size: 9.5pt; }
+  .bulk-report .report-name { font-size: 18pt; }
+  .bulk-report .report-section { margin-bottom: 10pt; }
+  .bulk-report .std-desc { font-size: 8pt; }
+  .bulk-report .src-cell { font-size: 8pt; }
+  .bulk-report th, .bulk-report td { padding: 2pt 4pt; }
+  .bulk-report .stat-value { font-size: 15pt; }
+  .bulk-report .domain-head { margin: 8pt 0 2pt; }
+  .bulk-report .footnote { font-size: 7.5pt; }
 
-  .bulk-overall {
-    display: flex; align-items: center; gap: 14pt;
-    margin-bottom: 8pt; padding-bottom: 6pt; border-bottom: .5pt solid #bbb;
-  }
-  .bulk-pct { font-size: 20pt; font-weight: 800; }
-  .bulk-band { font-size: 9pt; font-weight: 600; margin-left: 5pt; }
-  .bulk-stat-meta { font-size: 8.5pt; color: #333; }
-  .bulk-overall-bar { flex: 1 1 auto; min-width: 80pt; }
-  .bulk-overall-bar .mastery-bar { height: 9pt; }
+  /* Compact: same report, same numbers, less prose — drops the per-standard
+     sentence and the "Assessed on" column, then tightens the furniture, so a
+     unit report lands on a single page. Measured, not guessed: see
+     tools/check-print.mjs. */
+  #bulk-print.compact .std-desc,
+  #bulk-print.compact .src-cell,
+  #bulk-print.compact .src-col { display: none !important; }
+  #bulk-print.compact .report { font-size: 9pt; }
+  #bulk-print.compact .report-name { font-size: 15pt; }
+  #bulk-print.compact .report-head { padding-bottom: 2.5pt; margin-bottom: 4pt; }
+  #bulk-print.compact .report-section { margin-bottom: 4.5pt; }
+  #bulk-print.compact .report-section h3 { font-size: 10pt; margin-bottom: 2pt; }
+  #bulk-print.compact th,
+  #bulk-print.compact td { padding: 1.4pt 4pt; }
+  #bulk-print.compact .std-label { font-size: 8.5pt; }
+  #bulk-print.compact .std-code { font-size: 9pt; }
+  #bulk-print.compact .domain-head { margin: 5pt 0 1pt; }
+  #bulk-print.compact .overall-grid { gap: 14pt; }
+  #bulk-print.compact .report-foot { padding-top: 3pt; }
+  #bulk-print.compact .stat-label { font-size: 7.5pt; }
+  #bulk-print.compact .stat-value { font-size: 13pt; }
+  #bulk-print.compact .mastery-scale { padding: 3pt 5pt; margin-top: 3pt; }
+  #bulk-print.compact .two-col { gap: 10pt; }
+  #bulk-print.compact .footnote { font-size: 7pt; margin-bottom: 1pt; }
 
-  .bulk-standards h3 { font-size: 10.5pt; margin: 0 0 3pt; }
-  .bulk-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
-  .bulk-table thead th {
-    text-align: left; font-size: 7.5pt; text-transform: uppercase;
-    letter-spacing: .03em; color: #444; border-bottom: .5pt solid #999;
-    padding: 2pt 3pt;
-  }
-  .bulk-table td, .bulk-table tbody th {
-    padding: 1.8pt 3pt; border-bottom: .5pt solid #ddd;
-    text-align: left; vertical-align: middle;
-  }
-  .bulk-table .num { text-align: right; font-variant-numeric: tabular-nums; }
-  .bulk-domain-row th {
-    padding-top: 5pt; font-size: 7.5pt; text-transform: uppercase;
-    letter-spacing: .04em; color: #444; border-bottom: .5pt solid #bbb;
-  }
-  .bulk-std-row { break-inside: avoid; page-break-inside: avoid; }
-  .bulk-code { font-weight: 800; }
-  .bulk-label { color: #333; margin-left: 5pt; }
-  .bulk-tag {
-    font-size: 6.5pt; font-weight: 700; border: .5pt solid #888;
-    border-radius: 2pt; padding: 0 2pt; margin-left: 3pt;
-  }
-  .bulk-bar-cell { width: 52pt; }
-  .bulk-bar-cell .mastery-bar { height: 6pt; }
-  .bulk-band-cell { width: 70pt; font-weight: 600; white-space: nowrap; }
+  /* Put the code and its short label on one line instead of two — the same
+     text, roughly 14px less per standard. */
+  #bulk-print.compact .std-code-line { display: inline; }
+  #bulk-print.compact .std-label { display: inline; margin-left: 4pt; font-weight: 400; }
+  #bulk-print.compact .std-code-cell { min-width: 0; }
 
-  .bulk-narrative { margin-top: 7pt; font-size: 8.5pt; }
-  .bulk-narrative p { margin: 0 0 2pt; }
-  .bulk-empty { font-size: 10pt; color: #333; margin-top: 10pt; }
+  /* The legend wraps to three lines at page width; one tight row is plenty. */
+  #bulk-print.compact .mastery-scale { gap: .3rem; padding: 2pt 4pt; font-size: 7pt; }
+  #bulk-print.compact .mastery-scale-keys { gap: .45rem; }
+  #bulk-print.compact .mastery-scale-track { min-width: 3rem; }
+  #bulk-print.compact .mastery-scale .small { font-size: 7pt; }
+  #bulk-print.compact .mastery-swatch { width: 8px; height: 8px; }
 
-  .bulk-foot {
-    margin-top: 7pt; padding-top: 4pt; border-top: .5pt solid #bbb;
-    font-size: 7pt; color: #444;
-  }
-  .bulk-foot p { margin: 0 0 1.5pt; }
+  #bulk-print.compact .narrative-list li { margin-bottom: 1pt; }
+  #bulk-print.compact .two-col { gap: 8pt; }
 }
