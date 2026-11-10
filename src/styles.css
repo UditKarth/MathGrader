@@ -152,6 +152,10 @@ p { margin: 0 0 .6em; }
   border-radius: var(--radius); box-shadow: var(--shadow);
 }
 .menu-item { justify-content: flex-start; text-align: left; width: 100%; }
+.menu-sep { border: 0; border-top: 1px solid var(--border); margin: .3rem 0; width: 100%; }
+
+/* `hidden` must win over the display rules on .tabs / .bar-tools. */
+[hidden] { display: none !important; }
 .menu-status {
   margin: 0; padding: .35rem .6rem .5rem;
   font-size: .8rem; color: var(--text-muted);
@@ -230,6 +234,18 @@ main:focus { outline: none; }
 .bulk > summary { cursor: pointer; font-weight: 600; padding: .4rem 0; }
 .bulk-body { display: flex; flex-direction: column; gap: .6rem; align-items: flex-start; padding-top: .5rem; }
 .bulk-body .field { width: 100%; }
+
+/* ---------- First-visit grade picker ---------- */
+
+.grade-picker { max-width: 40rem; margin: 2rem auto; text-align: center; padding: 2rem 1.5rem; }
+.grade-picker h2 { margin-top: 0; }
+.grade-choices { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin: 1.5rem 0; }
+.grade-choice {
+  flex: 1 1 12rem; max-width: 16rem; min-height: 6rem;
+  flex-direction: column; justify-content: center; gap: .25rem;
+}
+.grade-choice-label { font-size: 1.4rem; font-weight: 700; }
+.grade-choice-sub { font-size: .85rem; opacity: .85; font-weight: 400; }
 
 .empty { text-align: left; }
 .empty .steps { margin: 0 0 1rem 1.1rem; padding: 0; }

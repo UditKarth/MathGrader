@@ -1,7 +1,7 @@
 /**
  * Gradebook screen: students (rows) × the selected assessment's questions
  * (columns). All 62 questions at once would be unusable, so the teacher picks
- * a unit first. The app is scoped to End Unit Assessments, so that is normally
+ * a unit first. Each unit has exactly one assessment, so that is normally
  * the only choice per unit and the assessment selector stays hidden; it appears
  * automatically if the data build is ever widened to include more assessments.
  *
@@ -121,13 +121,13 @@ function renderGrid(state, group, ctx) {
       const maxInput = el("input", {
         type: "number", min: "0.5", step: "0.5", class: "input max-input",
         value: String(getPointsPossible(qid)),
-        "aria-label": `Points possible for question ${q.questionNumber} (applies to the whole class)`,
+        "aria-label": `Points possible for ${q.label} (applies to the whole class)`,
         title: "Max points for this question — applies to the whole class",
         onchange: (e) => {
           const v = Number(e.target.value);
           if (!Number.isFinite(v) || v <= 0) { e.target.value = String(getPointsPossible(qid)); return; }
           setPointsPossible(qid, v);
-          ctx.announce(`Question ${q.questionNumber} is now worth ${v} point${v === 1 ? "" : "s"} for the whole class.`);
+          ctx.announce(`${q.label} is now worth ${v} point${v === 1 ? "" : "s"} for the whole class.`);
           ctx.rerender();
         },
       });
@@ -141,13 +141,13 @@ function renderGrid(state, group, ctx) {
         type: "button", class: "q-num-btn",
         // Native title as a baseline; the styled tooltip layers on top of it.
         title: `${q.standards.join(", ")} — click for descriptions`,
-        "aria-label": `Question ${q.questionNumber}, aligned to ${q.standards.join(", ")}. Show descriptions.`,
-        onclick: () => ctx.showStandards(q.standards, `Question ${q.questionNumber}`),
-      }, `Q${q.questionNumber}`);
+        "aria-label": `${q.label}, aligned to ${q.standards.join(", ")}. Show descriptions.`,
+        onclick: () => ctx.showStandards(q.standards, q.label),
+      }, q.label);
 
       attachTooltip(qButton, () =>
         el("div", { class: "tip-standards" },
-          el("div", { class: "tip-head", text: `Question ${q.questionNumber}` }),
+          el("div", { class: "tip-head", text: q.label }),
           el("ul", { class: "tip-list" }, described.map((d) =>
             el("li", {},
               el("span", { class: "tip-code", text: d.code }),
@@ -159,7 +159,7 @@ function renderGrid(state, group, ctx) {
       return el("th", { scope: "col", class: "q-head" },
         qButton,
         el("label", { class: "max-field" },
-          el("span", { class: "sr-only", text: `Points possible for question ${q.questionNumber}` }),
+          el("span", { class: "sr-only", text: `Points possible for ${q.label}` }),
           maxInput)
       );
     }),
@@ -179,7 +179,7 @@ function renderGrid(state, group, ctx) {
         value: score === undefined ? "" : String(score),
         placeholder: "",
         inputmode: "decimal",
-        "aria-label": `${student.name}, question ${QUESTIONS_BY_ID[qid].questionNumber}, out of ${max}`,
+        "aria-label": `${student.name}, ${QUESTIONS_BY_ID[qid].label}, out of ${max}`,
         "aria-invalid": over ? "true" : null,
         title: over ? `Above the ${max}-point maximum for this question.` : null,
         dataset: { row: String(rowIndex), col: String(colIndex) },

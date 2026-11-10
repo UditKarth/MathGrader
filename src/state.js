@@ -2,7 +2,10 @@
  * state.js — the single source of runtime truth, persisted to localStorage.
  *
  * Shape (see README):
- *   { version, teacherName, roster[], pointsPossible{}, scores{} }
+ *   { version, grade, teacherName, roster[], pointsPossible{}, scores{} }
+ *
+ * Each grade is stored under its own key (see src/grade.js), so this module
+ * only ever holds the current grade's class.
  *
  * Two rules this module exists to protect:
  *   1. A missing score is NOT a zero. Absent keys mean "not assessed yet".
@@ -10,7 +13,9 @@
  *   2. Max points belong to the question, not the student.
  */
 
-const STORAGE_KEY = "desmos-grader:v1";
+import { GRADE, gradeOf } from "./grade.js";
+
+const STORAGE_KEY = GRADE.storageKey;
 export const STATE_VERSION = 1;
 export const DEFAULT_POINTS_POSSIBLE = 1;
 
@@ -19,6 +24,7 @@ export const DEFAULT_POINTS_POSSIBLE = 1;
 export function emptyState() {
   return {
     version: STATE_VERSION,
+    grade: GRADE.id,
     teacherName: "",
     // When the teacher last downloaded a JSON backup. Browser storage is the
     // only copy this app has, and on GitHub Pages it lives on an origin whose
@@ -60,9 +66,22 @@ export function normalizeState(raw) {
     );
   }
 
+  // Question ids repeat across grades ("u2-endunitassessment-q1" exists in
+  // both), so a Grade 1 file loaded into Kindergarten would put scores on the
+  // wrong questions. Files from before Kindergarten existed have no grade and
+  // are Grade 1.
+  const fileGrade = gradeOf(raw.grade);
+  if (!fileGrade) throw new Error(`Unknown grade ${JSON.stringify(raw.grade)}.`);
+  if (fileGrade.id !== GRADE.id) {
+    const err = new Error(`This is ${fileGrade.label} data, but the app is open in ${GRADE.label}.`);
+    err.fileGrade = fileGrade;
+    throw err;
+  }
+
   const roster = Array.isArray(raw.roster) ? raw.roster : [];
   const next = {
     version: STATE_VERSION,
+    grade: GRADE.id,
     teacherName: typeof raw.teacherName === "string" ? raw.teacherName : "",
     lastExportedAt: typeof raw.lastExportedAt === "string" ? raw.lastExportedAt : null,
     roster: roster
@@ -106,11 +125,19 @@ export function loadState() {
       "This browser is blocking local storage (private browsing?). The app still works, but your data will be lost when you close this tab — use Export All (JSON) before you leave.";
     return state;
   }
+  let raw = null;
   try {
-    const raw = store.getItem(STORAGE_KEY);
+    raw = store.getItem(STORAGE_KEY);
     if (raw) state = normalizeState(JSON.parse(raw));
   } catch (err) {
-    storageWarning = `Saved data could not be read (${err.message}). Starting with an empty gradebook; your old data has not been overwritten yet.`;
+    // The next edit saves over STORAGE_KEY, so copy the unreadable data aside
+    // first. It can then be recovered by hand instead of being lost.
+    const rescueKey = `${STORAGE_KEY}:unreadable:${new Date().toISOString()}`;
+    let rescued = false;
+    try { if (raw) { store.setItem(rescueKey, raw); rescued = true; } } catch { /* quota */ }
+    storageWarning = rescued
+      ? `Saved data could not be read (${err.message}). Starting with an empty gradebook. A copy of the old data was kept in this browser under "${rescueKey}" — please contact whoever set up this app before entering new scores.`
+      : `Saved data could not be read (${err.message}). Starting with an empty gradebook; your old data has not been overwritten yet — please export or contact whoever set up this app before entering new scores.`;
   }
   return state;
 }

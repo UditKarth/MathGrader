@@ -1,13 +1,16 @@
+import { GRADE, GRADES } from "../grade.js";
+
 // Hand-authored plain-English descriptions for every standard code that
-// appears in Grade 1 Standards.csv.
+// appears in Grade 1 Standards.csv or Kinder Standards.csv.
 //
 // Source of truth for the intent of each standard is the public-domain Common
 // Core State Standards text. The wording below is our own, rewritten so that a
 // parent at a conference can read it without decoding education jargon.
 //
-// K.* codes are Kindergarten readiness standards that the Desmos Grade 1
-// curriculum still assesses early in the year; they are labelled as
-// prerequisites in the report so nobody wonders why they appear.
+// K.* codes are the Kindergarten standards. The same entries serve both
+// grades: in Kindergarten they are simply the standards; in Grade 1, where the
+// curriculum revisits a few early in the year, they are labelled as readiness
+// standards so nobody wonders why they appear on a first-grade report.
 
 export const DOMAINS = {
   OA: "Operations & Algebraic Thinking",
@@ -17,8 +20,8 @@ export const DOMAINS = {
   CC: "Counting & Cardinality",
 };
 
-/** Display order for domain groupings on the report. */
-export const DOMAIN_ORDER = ["OA", "NBT", "MD", "G", "CC"];
+/** Display order for domain groupings on the report — per grade. */
+export const DOMAIN_ORDER = GRADE.domainOrder;
 
 /** @typedef {{code:string, domain:keyof DOMAINS, shortLabel:string, description:string, grade:"1"|"K"}} StandardDescription */
 
@@ -152,11 +155,28 @@ export const STANDARD_DESCRIPTIONS = {
     description: "Splits circles and rectangles into two or four equal parts, names them halves and fourths, and knows the more pieces you make the smaller each one gets.",
   },
 
-  // ---- Kindergarten readiness / prerequisite standards -----------------
+  // ---- Kindergarten standards -------------------------------------------
+  // (Also Grade 1 readiness standards. Wording is our own, from the public
+  // Common Core text at thecorestandards.org/Math/Content/K/.)
+  "K.CC.1": {
+    code: "K.CC.1", domain: "CC", grade: "K",
+    shortLabel: "Count to 100 by ones and tens",
+    description: "Counts out loud to 100, both one number at a time and by tens (10, 20, 30, and so on).",
+  },
   "K.CC.3": {
     code: "K.CC.3", domain: "CC", grade: "K",
     shortLabel: "Write numbers to 20",
     description: "Writes the numbers 0 to 20 and uses a written number to show how many things are in a group.",
+  },
+  "K.CC.4": {
+    code: "K.CC.4", domain: "CC", grade: "K",
+    shortLabel: "Counting tells how many",
+    description: "Understands what counting means: says one number for each object, knows the last number said is how many there are, and knows each next number is one more.",
+  },
+  "K.CC.4.b": {
+    code: "K.CC.4.b", domain: "CC", grade: "K",
+    shortLabel: "Last number counted is the total",
+    description: "Knows the last number said when counting tells how many there are, and that the total stays the same no matter how the objects are arranged or which one is counted first.",
   },
   "K.CC.5": {
     code: "K.CC.5", domain: "CC", grade: "K",
@@ -183,15 +203,55 @@ export const STANDARD_DESCRIPTIONS = {
     shortLabel: "Name shapes in any orientation",
     description: "Names a shape correctly no matter how big it is or which way it is turned.",
   },
+  "K.G.3": {
+    code: "K.G.3", domain: "G", grade: "K",
+    shortLabel: "Flat or solid shapes",
+    description: "Tells whether a shape is flat, like a square or circle, or solid, like a cube or ball.",
+  },
+  "K.G.4": {
+    code: "K.G.4", domain: "G", grade: "K",
+    shortLabel: "Compare shapes",
+    description: "Compares flat and solid shapes of different sizes and positions, using everyday words for how they are alike and different, such as how many sides and corners they have.",
+  },
+  "K.G.6": {
+    code: "K.G.6", domain: "G", grade: "K",
+    shortLabel: "Put shapes together",
+    description: "Joins simple shapes to make bigger ones, for example putting two triangles together to make a rectangle.",
+  },
   "K.MD.2": {
     code: "K.MD.2", domain: "MD", grade: "K",
     shortLabel: "Compare measurable attributes",
     description: "Compares two objects on something you can measure, saying which is longer, shorter, or heavier.",
   },
+  "K.MD.3": {
+    code: "K.MD.3", domain: "MD", grade: "K",
+    shortLabel: "Sort and count groups",
+    description: "Sorts objects into groups, counts how many are in each group, and puts the groups in order by how many they have.",
+  },
+  "K.NBT.1": {
+    code: "K.NBT.1", domain: "NBT", grade: "K",
+    shortLabel: "Teen numbers as ten and ones",
+    description: "Shows the numbers 11 to 19 as ten ones and some more ones, such as 18 = 10 + 8, using objects, drawings, or an equation.",
+  },
+  "K.OA.1": {
+    code: "K.OA.1", domain: "OA", grade: "K",
+    shortLabel: "Show adding and taking away",
+    description: "Shows adding and taking away with objects, fingers, drawings, sounds like claps, acting it out, words, or simple equations.",
+  },
   "K.OA.2": {
     code: "K.OA.2", domain: "OA", grade: "K",
     shortLabel: "Add & subtract within 10",
     description: "Solves add and subtract story problems within 10, using objects or drawings to work them out.",
+  },
+  "K.OA.3": {
+    code: "K.OA.3", domain: "OA", grade: "K",
+    shortLabel: "Break numbers up to 10 apart",
+    description: "Breaks a number up to 10 into two parts in more than one way, such as 5 = 2 + 3 and 5 = 4 + 1, and shows it with a drawing or an equation.",
+  },
+  "K.OA.4": {
+    code: "K.OA.4", domain: "OA", grade: "K",
+    shortLabel: "Make 10",
+    description: "Finds the number that goes with any number from 1 to 9 to make 10, and shows the answer with a drawing or an equation.",
   },
 };
 
@@ -208,7 +268,11 @@ export function describeStandard(code) {
   );
 }
 
-/** True for Kindergarten prerequisite standards carried into Grade 1. */
+/**
+ * True for a standard from an earlier grade than the one being graded — the
+ * Kindergarten standards a Grade 1 report revisits. Never true in Kindergarten.
+ */
 export function isPrerequisite(code) {
-  return describeStandard(code).grade === "K";
+  const own = GRADES[describeStandard(code).grade];
+  return Boolean(own) && own.rank < GRADE.rank;
 }

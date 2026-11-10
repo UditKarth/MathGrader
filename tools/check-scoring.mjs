@@ -4,6 +4,9 @@
  * localStorage, so the "a blank is not a zero" rule can't regress silently.
  *   node tools/check-scoring.mjs
  */
+import { perGrade } from "./per-grade.mjs";
+perGrade(import.meta.url);
+
 const store = new Map();
 globalThis.window = { localStorage: {
   getItem: k => store.has(k) ? store.get(k) : null,
@@ -12,6 +15,7 @@ globalThis.window = { localStorage: {
 const S = await import("../src/state.js");
 const C = await import("../src/scoring.js");
 const { ASSESSMENTS, QUESTIONS_BY_ID, QUESTIONS } = await import("../src/data/standards.js");
+const { GRADE, GRADES } = await import("../src/grade.js");
 
 let fails = 0;
 const eq = (label, got, want) => {
@@ -143,14 +147,42 @@ eq("formatPercent rounds for display only", C.formatPercent(100/3), "33%");
 
 // --- persistence round trip ---
 S.saveNow();
-const raw = JSON.parse(store.get("desmos-grader:v1"));
-eq("persisted under desmos-grader:v1", typeof raw, "object");
+const raw = JSON.parse(store.get(GRADE.storageKey));
+eq(`persisted under ${GRADE.storageKey}`, typeof raw, "object");
+eq("persisted state records its grade", raw.grade, GRADE.id);
 eq("real 0 survives serialization", raw.scores[a.id][q[1]], 0);
 eq("blank stays absent after serialization", q[3] in raw.scores[a.id], false);
 const reloaded = S.normalizeState(raw);
 eq("reload keeps the 0", reloaded.scores[a.id][q[1]], 0);
 eq("reload keeps blanks blank", q[3] in reloaded.scores[a.id], false);
 eq("clearing a score removes the key, not sets 0", (S.setScore(a.id,q[0],null), S.getScore(a.id,q[0])), undefined);
+
+// --- each grade's data stays in its own grade ---
+const otherId = GRADE.id === "K" ? "1" : "K";
+const throwsFor = (blob) => { try { S.normalizeState(blob); return false; } catch { return true; } };
+eq(`a ${GRADES[otherId].label} file is refused`, throwsFor({ ...raw, grade: otherId }), true);
+eq("a file with no grade (pre-Kindergarten backup) is Grade 1 only",
+   throwsFor({ ...raw, grade: undefined }), GRADE.id !== "1");
+eq("grades use different storage keys", GRADES.K.storageKey !== GRADES[1].storageKey, true);
+eq("Grade 1 keeps its original key", GRADES[1].storageKey, "desmos-grader:v1");
+
+// --- upgrading: a save from before Kindergarten support must load intact ---
+if (GRADE.id === "1") {
+  // Exactly what the previous version wrote: no grade field, original key.
+  const legacy = {
+    version: 1, teacherName: "Ms. Legacy", lastExportedAt: null,
+    roster: [{ id: "s_old", name: "Old Kid", createdAt: "2026-09-01T00:00:00.000Z" }],
+    pointsPossible: { [QUESTIONS[0].id]: 2 },
+    scores: { s_old: Object.fromEntries(QUESTIONS.map((q, i) => [q.id, i % 3 === 0 ? 0 : 1])) },
+  };
+  const up = S.normalizeState(JSON.parse(JSON.stringify(legacy)));
+  eq("pre-update save: every score survives (including real 0s)",
+     JSON.stringify(up.scores), JSON.stringify(legacy.scores));
+  eq("pre-update save: roster, max points and teacher survive",
+     [up.roster[0].name, up.pointsPossible[QUESTIONS[0].id], up.teacherName], ["Old Kid", 2, "Ms. Legacy"]);
+  eq("pre-update save: every saved question id still exists",
+     Object.keys(legacy.scores.s_old).every((id) => QUESTIONS_BY_ID[id]), true);
+}
 
 // --- markAllCorrect / CSV ---
 S.markAllCorrect(b.id, q);

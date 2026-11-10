@@ -16,6 +16,7 @@ import { renderGradebook } from "./views/gradebook.js";
 import { renderReport } from "./views/report.js";
 import { printAllReports, studentsWithData } from "./views/bulkPrint.js";
 import { findScope, reportScopes } from "./scoring.js";
+import { GRADE, GRADES, GRADE_IDS, CHOSEN_GRADE_ID, chooseGrade } from "./grade.js";
 
 const route = { name: "roster", studentId: null };
 
@@ -45,6 +46,7 @@ function focusMain() {
 // ---------------------------------------------------------------------------
 
 function render() {
+  if (!CHOSEN_GRADE_ID) { renderGradePicker(); return; }
   syncNav();
   if (route.name === "gradebook") renderGradebook(main, ctx);
   else if (route.name === "report" && route.studentId) renderReport(main, ctx, route.studentId);
@@ -59,6 +61,65 @@ function syncNav() {
     btn.setAttribute("aria-current", active ? "page" : "false");
   }
 }
+
+// ---------------------------------------------------------------------------
+// Grade
+//
+// The first visit asks which grade the teacher teaches; after that the app
+// opens straight into it. Switching is deliberately tucked into the Data
+// menu — a Kindergarten teacher should never stumble into Grade 1.
+// ---------------------------------------------------------------------------
+
+function applyGradeToChrome() {
+  // Optional chaining throughout: for up to ten minutes after a deploy, GitHub
+  // Pages can serve a cached old index.html alongside this new script.
+  const title = document.getElementById("app-title");
+  if (title) title.textContent = CHOSEN_GRADE_ID ? GRADE.appTitle : "Standards Grader";
+  document.title = CHOSEN_GRADE_ID
+    ? `${GRADE.appTitle} · Desmos Math`
+    : "Standards Grader · Desmos Math";
+  // Nothing to navigate to or export until a grade is chosen.
+  for (const node of document.querySelectorAll(".tabs, .bar-tools")) {
+    node.hidden = !CHOSEN_GRADE_ID;
+  }
+}
+
+function renderGradePicker() {
+  clear(main).append(
+    el("section", { class: "card grade-picker" },
+      el("h2", { text: "Welcome! Which grade do you teach?" }),
+      el("p", { text: "Pick once — this computer will remember it and open your class every time you come back." }),
+      el("div", { class: "grade-choices" },
+        ...GRADE_IDS.map((id) =>
+          el("button", {
+            type: "button", class: "btn btn-primary grade-choice",
+            onclick: () => chooseGrade(id),
+          },
+            el("span", { class: "grade-choice-label", text: GRADES[id].label }),
+            el("span", { class: "grade-choice-sub", text: `Desmos Math ${GRADES[id].label}` })
+          )
+        )
+      ),
+      el("p", { class: "muted", text: "You can change this later under Data ▾ → Switch grade." })
+    )
+  );
+}
+
+function otherGrade() {
+  return GRADES[GRADE.id === "K" ? "1" : "K"];
+}
+
+document.getElementById("switch-grade")?.addEventListener("click", () => {
+  const other = otherGrade();
+  if (!confirmAction(
+    `Switch to ${other.label}?\n\n` +
+    `Your ${GRADE.label} class and scores stay saved in this browser — switch back any time to see them again. ` +
+    `${other.label} has its own separate class.\n\n` +
+    `The app will open in ${other.label} from now on.`
+  )) return;
+  saveNow();
+  chooseGrade(other.id);
+});
 
 // ---------------------------------------------------------------------------
 // Save indicator
@@ -249,7 +310,7 @@ function stamp() {
 
 document.getElementById("export-json").addEventListener("click", () => {
   saveNow();
-  downloadBlob(`desmos-grader-${stamp()}.json`, "application/json",
+  downloadBlob(`desmos-grader-${GRADE.fileTag}-${stamp()}.json`, "application/json",
     JSON.stringify(getState(), null, 2));
   markExported();
   backupNudgeDismissed = true;   // they just did the thing we would nag about
@@ -261,7 +322,7 @@ document.getElementById("export-json").addEventListener("click", () => {
 document.getElementById("export-csv").addEventListener("click", () => {
   const state = getState();
   if (!state.roster.length) { ctx.announce("Nothing to export yet — add a student first."); return; }
-  downloadBlob(`desmos-gradebook-${stamp()}.csv`, "text/csv;charset=utf-8",
+  downloadBlob(`desmos-gradebook-${GRADE.fileTag}-${stamp()}.csv`, "text/csv;charset=utf-8",
     gradebookCsv(state.roster));
   ctx.announce("Exported the gradebook as CSV.");
 });
@@ -278,6 +339,15 @@ importInput.addEventListener("change", async () => {
     parsed = JSON.parse(await file.text());
   } catch {
     window.alert("That file is not valid JSON.");
+    return;
+  }
+  const fileGrade = parsed && typeof parsed === "object" ? GRADES[parsed.grade ?? "1"] : null;
+  if (fileGrade && fileGrade.id !== GRADE.id) {
+    window.alert(
+      `This backup is from a ${fileGrade.label} class, but the app is open in ${GRADE.label}.\n\n` +
+      `To load it, choose Data ▾ → Switch grade… to go to ${fileGrade.label}, then import it there. ` +
+      `Nothing was changed.`
+    );
     return;
   }
   if (parsed?.version !== STATE_VERSION) {
@@ -325,6 +395,7 @@ for (const btn of document.querySelectorAll("[data-route]")) {
 // Boot
 // ---------------------------------------------------------------------------
 
+applyGradeToChrome();
 loadState();
 const warning = getStorageWarning();
 if (warning) showBanner(warning);

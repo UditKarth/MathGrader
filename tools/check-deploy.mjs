@@ -138,14 +138,15 @@ ok(
 ok(".nojekyll present", existsSync(join(ROOT, ".nojekyll")));
 ok("index.html present at repo root", existsSync(join(ROOT, "index.html")));
 
-// --- 6. The generated data module is committed and current ------------------
-const dataPath = join(ROOT, "src", "data", "standards.js");
-ok("generated src/data/standards.js is committed", existsSync(dataPath));
-if (existsSync(dataPath)) {
-  const csv = statSync(join(ROOT, "Grade 1 Standards.csv")).mtimeMs;
-  const gen = statSync(dataPath).mtimeMs;
-  if (csv > gen) {
-    notes.push("Grade 1 Standards.csv is newer than src/data/standards.js — re-run node tools/build-data.mjs");
+// --- 6. The generated data modules are committed and current ----------------
+for (const [csvName, out] of [
+  ["Grade 1 Standards.csv", "grade1.js"],
+  ["Kinder Standards.csv", "gradeK.js"],
+]) {
+  const dataPath = join(ROOT, "src", "data", out);
+  ok(`generated src/data/${out} is committed`, existsSync(dataPath));
+  if (existsSync(dataPath) && statSync(join(ROOT, csvName)).mtimeMs > statSync(dataPath).mtimeMs) {
+    notes.push(`${csvName} is newer than src/data/${out} — re-run node tools/build-data.mjs`);
   }
 }
 

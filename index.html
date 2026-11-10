@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Grade 1 Standards Grader · Desmos Math</title>
-<meta name="description" content="Turn Desmos Math Grade 1 assessment scores into a per-standard report for each student. All data stays in your browser." />
+<title>Standards Grader · Desmos Math</title>
+<meta name="description" content="Turn Desmos Math Kindergarten and Grade 1 assessment scores into a per-standard report for each student. All data stays in your browser." />
 <link rel="stylesheet" href="./src/styles.css" />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📐</text></svg>" />
 </head>
@@ -17,7 +17,7 @@
     <div class="brand">
       <span class="brand-mark" aria-hidden="true">📐</span>
       <div>
-        <h1>Grade 1 Standards Grader</h1>
+        <h1 id="app-title">Standards Grader</h1>
         <p class="brand-sub">Desmos Math · per-standard reports</p>
       </div>
     </div>
@@ -37,6 +37,8 @@
           <button type="button" class="btn menu-item" id="export-csv">Export Gradebook (CSV)</button>
           <button type="button" class="btn menu-item" id="import-json">Import (JSON)…</button>
           <button type="button" class="btn menu-item btn-danger" id="clear-all">Clear all data…</button>
+          <hr class="menu-sep" />
+          <button type="button" class="btn menu-item" id="switch-grade">Switch grade…</button>
           <input type="file" id="import-file" accept="application/json,.json" hidden />
         </div>
       </details>
@@ -66,7 +68,7 @@
     <fieldset class="dialog-field">
       <legend>Report covers</legend>
       <label class="radio"><input type="radio" name="bulk-scope" value="unit" checked /> <span id="bulk-scope-unit">This unit</span></label>
-      <label class="radio"><input type="radio" name="bulk-scope" value="year" /> <span>Full year — all End Unit Assessments</span></label>
+      <label class="radio"><input type="radio" name="bulk-scope" value="year" /> <span>Full year — every unit</span></label>
     </fieldset>
 
     <fieldset class="dialog-field">

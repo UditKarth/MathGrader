@@ -201,6 +201,7 @@ export function reportScopes() {
       shortLabel: `${g.unit}`,
       label: `Unit ${g.unit}`,
       title: `Unit ${g.unit} · ${g.assessment}`,
+      assessment: g.assessment,
       questionIds: g.questionIds,
     })),
     {
@@ -209,7 +210,7 @@ export function reportScopes() {
       unit: null,
       shortLabel: "Full year",
       label: "Full year",
-      title: "Full year · all End Unit Assessments",
+      title: "Full year · every unit",
       questionIds: ALL_QUESTION_IDS,
     },
   ];
@@ -277,8 +278,8 @@ export function gradebookCsv(roster) {
         [
           student.name,
           q.unit,
-          q.assessment,
-          q.questionNumber,
+          q.source ? q.source.assessment : q.assessment,
+          q.source ? q.source.questionNumber : q.questionNumber,
           q.standards.join(" "),
           assessed ? score : "",
           assessed ? getPointsPossible(q.id) : "",

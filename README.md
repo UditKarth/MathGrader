@@ -1,6 +1,7 @@
-# Grade 1 Standards Grader
+# Kindergarten & Grade 1 Standards Grader
 
-A single-page web app that turns **Desmos Math** Grade 1 **End Unit Assessment** scores into
+A single-page web app that turns **Desmos Math** Kindergarten and Grade 1 **End Unit
+Assessment** scores into
 a **per-standard report** for each student — the view report cards and parent conferences
 actually need.
 
@@ -13,20 +14,63 @@ own browser.
 
 ---
 
+## Two grades, one app
+
+The first time a teacher opens the app it asks one question — **"Which grade do you
+teach?"** — with a big button for each grade. The answer is remembered in that browser, so
+every later visit opens straight into that grade's class with nothing to click.
+
+- **Each grade is its own gradebook.** Kindergarten and Grade 1 keep separate rosters,
+  max points and scores, under separate storage keys. A Kindergarten teacher never sees
+  Grade 1 data and vice versa.
+- **Switching is tucked away**, under **Data ▾ → Switch grade…**, with a confirmation
+  that explains the other grade's class is kept. Switching also changes the remembered
+  default.
+- **Existing Grade 1 teachers are never asked.** A browser that already has Grade 1 data
+  from before Kindergarten support existed is treated as a Grade 1 browser automatically.
+- **Updating is safe for existing data.** Grade 1 keeps its storage key and every
+  question id from before, and `tools/check-scoring.mjs` loads a save written by the
+  previous version and asserts every score survives. If saved data ever cannot be read,
+  the app copies it to a `…:unreadable:<time>` key before anything can overwrite it.
+- **Backups are labelled with their grade.** Export file names include it
+  (`desmos-grader-kindergarten-2026-11-09.json`), and the file records it. Importing a
+  backup into the wrong grade is refused with plain instructions, and nothing changes. Old
+  backups with no grade are Grade 1.
+- If the browser blocks storage (some private windows), the choice is carried in the
+  address instead (`?grade=K`), so picking a grade still works for that visit.
+
+Everything else — roster, quick edit, gradebook, reports, bulk printing, bands, backups —
+is identical for both grades. The app reads the chosen grade once at startup
+(`src/grade.js`), which is why switching reloads the page.
+
 ## Scope: End Unit Assessments
 
-The app grades **End Unit Assessments only** — **62 questions across 7 units, covering 23
-standards**. The CSV's Pre-Unit Checks and Sub Unit Quizzes are parsed and normalized by the
-build script, then filtered out.
+The app grades **End Unit Assessments only**. The CSVs' Pre-Unit Checks and Sub Unit
+Quizzes are parsed and normalized by the build script, then filtered out.
 
-One consequence worth knowing: every `K.*` Kindergarten readiness standard appears *only* on
-Pre-Unit Checks, so scoping to End Unit Assessments drops all eight of them, along with
-`1.NBT.2.c`. Reports therefore cover Grade 1 standards only.
+| Grade | Questions | End Unit Assessments | Standards |
+| --- | --- | --- | --- |
+| Kindergarten | 44 | 6 + Unit 1's quizzes (Units 1–7) | 17 |
+| Grade 1 | 62 | 7 (Units 1–7) | 23 |
+
+Two consequences worth knowing:
+
+- **Kindergarten Unit 1 uses its quizzes.** Kindergarten Unit 1 has no End Unit
+  Assessment, only two one-question Sub Unit Quizzes. The build script folds those into a
+  single **"Sub Unit Quizzes"** assessment for Unit 1, with columns labelled *Quiz 1* and
+  *Quiz 2*. Every unit therefore still has exactly one assessment, and unit reports, quick
+  edit and bulk printing work for it unchanged. The rule is general: any unit with no End
+  Unit Assessment is graded from its Sub Unit Quizzes. The CSV export lists those
+  questions under their original quiz names.
+- **Grade 1 reports cover Grade 1 standards only.** Every `K.*` readiness standard in the
+  Grade 1 CSV appears *only* on Pre-Unit Checks, so scoping to End Unit Assessments drops
+  all eight of them, along with `1.NBT.2.c`.
 
 Widening the scope is a one-line change — add to `INCLUDED_ASSESSMENT_KEYS` in
 `tools/build-data.mjs` and re-run it. Nothing else needs to change: the gradebook grows an
-assessment selector automatically, hand-authored descriptions for all 32 CSV codes are
-already committed, and the report re-enables its Kindergarten explainer on its own.
+assessment selector automatically, hand-authored descriptions for every code in both CSVs
+are already committed, and the Grade 1 report re-enables its Kindergarten explainer on its
+own.
 
 ## What it does
 
@@ -204,17 +248,25 @@ and `tools/check-deploy.mjs` fails if one is present.
 
 ## Regenerating the data from the CSV
 
-`Grade 1 Standards.csv` is the source of truth and is kept in the repo for provenance.
-It is **not** read at runtime — `tools/build-data.mjs` parses it and emits
-`src/data/standards.js`, a committed ES module exporting plain arrays.
+Each grade's CSV is its source of truth and is kept in the repo for provenance. Neither is
+read at runtime — `tools/build-data.mjs` parses both and emits one committed ES module per
+grade:
 
-If the CSV changes, that is the only step needed:
+| CSV | Generated module |
+| --- | --- |
+| `Kinder Standards.csv` | `src/data/gradeK.js` |
+| `Grade 1 Standards.csv` | `src/data/grade1.js` |
+
+`src/data/standards.js` is a small hand-written file that picks one of them based on the
+chosen grade, so no view needs to know which grade it is showing.
+
+If a CSV changes, that is the only step needed:
 
 ```bash
 node tools/build-data.mjs
 ```
 
-Then commit the regenerated `src/data/standards.js`.
+Then commit the regenerated files.
 
 The build script normalizes the CSV's data-hygiene problems:
 
@@ -230,12 +282,15 @@ The build script normalizes the CSV's data-hygiene problems:
 - **Scope filtering** happens after normalization, so the collapse above still applies to
   rows that are about to be dropped.
 
-Current output: **62 questions across 7 End Unit Assessments in 7 units, covering 23
-distinct standards** — filtered from the CSV's 151 rows.
+Current output: Grade 1 — **62 questions across 7 End Unit Assessments, covering 23
+distinct standards**, filtered from 151 CSV rows. Kindergarten — **44 questions across 7
+units (6 End Unit Assessments plus Unit 1's Sub Unit Quizzes), covering 17 distinct
+standards**, filtered from 75 CSV rows.
 
 ### Checks
 
 ```bash
+# Each check runs once per grade.
 node tools/check-data.mjs      # data shape, ordering, and standard-description coverage
 node tools/check-scoring.mjs   # the scoring rules, incl. "a blank is not a zero"
 node tools/check-deploy.mjs    # GitHub Pages readiness (see Deploying, above)
@@ -249,8 +304,9 @@ node tools/check-print.mjs     # compact bulk reports still fit one page per uni
 
 ## Where your data is stored, and its limits
 
-Everything lives in **`localStorage`** in the browser you typed it into, under the single
-key `desmos-grader:v1`. Nothing is uploaded, there is no server, and there is no account.
+Everything lives in **`localStorage`** in the browser you typed it into: Grade 1 under
+`desmos-grader:v1` (the original key, so existing data carries over), Kindergarten under
+`desmos-grader:k:v1`, and the remembered grade under `desmos-grader:grade`. Nothing is uploaded, there is no server, and there is no account.
 
 That has real limits, so please read this part:
 
@@ -345,9 +401,15 @@ hue, and the band name is always printed as text beside it, so the report still 
 correctly in greyscale, on a black-and-white printout, or for a red/green colour-blind
 reader. A legend appears on the report, including in print.
 
-Codes beginning `K.` (`K.CC.3`, `K.OA.2`, …) are readiness/prerequisite standards that the
-Grade 1 curriculum revisits early in the year. They are labelled **"K readiness"** in the
-report so nobody wonders why Kindergarten standards appear on a first-grade report.
+In **Grade 1**, codes beginning `K.` (`K.CC.3`, `K.OA.2`, …) are readiness/prerequisite
+standards that the curriculum revisits early in the year. They are labelled **"K
+readiness"** in the report so nobody wonders why Kindergarten standards appear on a
+first-grade report. In **Kindergarten** they are simply the standards, so nothing is
+labelled. "Readiness" means "from an earlier grade than the one being graded"
+(`isPrerequisite` in `src/data/standardDescriptions.js`).
+
+The report groups standards by domain in a per-grade order: Kindergarten leads with
+Counting & Cardinality; Grade 1 leads with Operations & Algebraic Thinking.
 
 ---
 
@@ -366,11 +428,13 @@ background, sets `@page { margin: 0.5in }`, and avoids page-breaking inside a st
 ```
 index.html                        the whole app shell
 .nojekyll                         so GitHub Pages serves every path as-is
-Grade 1 Standards.csv             source of truth, kept for provenance
+Grade 1 Standards.csv             Grade 1 source of truth, kept for provenance
+Kinder Standards.csv              Kindergarten source of truth
 README.md
 
 src/
-  app.js                          navigation, import/export, dialogs, save indicator
+  grade.js                        which grade this browser grades; first-visit choice
+  app.js                          navigation, grade picker, import/export, dialogs
   state.js                        state + localStorage persistence (debounced ~300ms)
   scoring.js                      every percentage, band, and the CSV export
   dom.js                          small element helper
@@ -384,12 +448,14 @@ src/
     gradebook.js                  the data-entry grid
     report.js                     the individual report
   data/
-    standards.js                  GENERATED by tools/build-data.mjs — do not hand-edit
+    grade1.js, gradeK.js          GENERATED by tools/build-data.mjs — do not hand-edit
+    standards.js                  picks the chosen grade's data
     standardDescriptions.js       hand-authored, one plain-English sentence per standard
-                                  (all 32 CSV codes, including the 9 currently out of scope)
+                                  (all 43 codes in both CSVs, including out-of-scope ones)
 
 tools/
-  build-data.mjs                  CSV -> src/data/standards.js
+  build-data.mjs                  each grade's CSV -> src/data/grade1.js / gradeK.js
+  per-grade.mjs                   runs a check once per grade
   check-data.mjs                  data + description-coverage assertions
   check-scoring.mjs               scoring-rule assertions
   check-deploy.mjs                GitHub Pages readiness (case-sensitivity, paths, …)

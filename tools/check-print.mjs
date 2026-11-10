@@ -38,6 +38,9 @@
 
 import { ASSESSMENTS, QUESTIONS_BY_ID, ALL_STANDARD_CODES } from "../src/data/standards.js";
 import { STANDARD_DESCRIPTIONS } from "../src/data/standardDescriptions.js";
+import { perGrade } from "./per-grade.mjs";
+
+perGrade(import.meta.url);
 
 const PAGE_HEIGHT_PX = 960;   // Letter, 0.5in margins
 const FIXED_CHROME_PX = 457;  // fitted

@@ -99,7 +99,7 @@ export function renderQuickEdit(student, unit, ctx, handlers) {
       type: "number", min: "0", step: "0.5", inputmode: "decimal",
       class: `quick-score${over ? " over-max" : ""}`,
       value: score === undefined ? "" : String(score),
-      "aria-label": `${student.name}, Unit ${unit} question ${q.questionNumber}, out of ${max} points`,
+      "aria-label": `${student.name}, Unit ${unit} ${q.label}, out of ${max} points`,
       "aria-invalid": over ? "true" : null,
       dataset: { qIndex: String(index) },
       onfocus: (e) => e.target.select(),
@@ -120,17 +120,17 @@ export function renderQuickEdit(student, unit, ctx, handlers) {
       type: "number", min: "0.5", step: "0.5",
       class: "quick-max",
       value: String(max),
-      "aria-label": `Points possible for Unit ${unit} question ${q.questionNumber} (applies to the whole class)`,
+      "aria-label": `Points possible for Unit ${unit} ${q.label} (applies to the whole class)`,
       title: "Max points for this question — applies to the whole class",
       onchange: (e) => {
         const v = Number(e.target.value);
         if (!Number.isFinite(v) || v <= 0) { e.target.value = String(getPointsPossible(qid)); return; }
         setPointsPossible(qid, v);
-        ctx.announce(`Unit ${unit} question ${q.questionNumber} is now worth ${v} point${v === 1 ? "" : "s"} for the whole class.`);
+        ctx.announce(`Unit ${unit} ${q.label} is now worth ${v} point${v === 1 ? "" : "s"} for the whole class.`);
         const s = getScore(student.id, qid);
         const nowOver = s !== undefined && s > v;
         scoreInput.classList.toggle("over-max", nowOver);
-        scoreInput.setAttribute("aria-label", `${student.name}, Unit ${unit} question ${q.questionNumber}, out of ${v} points`);
+        scoreInput.setAttribute("aria-label", `${student.name}, Unit ${unit} ${q.label}, out of ${v} points`);
         card.classList.toggle("is-over", nowOver);
         afterChange();
       },
@@ -138,7 +138,7 @@ export function renderQuickEdit(student, unit, ctx, handlers) {
 
     const card = el("div", { class: `quick-card${over ? " is-over" : ""}` },
       el("div", { class: "quick-card-head" },
-        el("span", { class: "quick-q", text: `Q${q.questionNumber}` }),
+        el("span", { class: "quick-q", text: q.label }),
         el("div", { class: "chips" }, q.standards.map((code) => standardChip(code, ctx)))
       ),
       el("div", { class: "quick-card-entry" },

@@ -6,6 +6,7 @@
 
 import { el, clear, todayLong } from "../dom.js";
 import { getState, setTeacherName } from "../state.js";
+import { GRADE } from "../grade.js";
 import {
   overallFor, standardsBreakdown, assessmentsBreakdown, groupByDomain,
   narrative, formatPercent, bandFor, DOUBLE_COUNT_FOOTNOTE, BANDS,
@@ -89,7 +90,7 @@ export function buildReportArticle(student, scope, state, ctx, { interactive = t
       el("h2", { class: "report-name", text: student.name }),
       el("p", { class: "report-scope-title", text: scope.title }),
       el("div", { class: "report-meta" },
-        el("div", { class: "print-only", text: state.teacherName || "Desmos Math · Grade 1" }),
+        el("div", { class: "print-only", text: state.teacherName || `Desmos Math · ${GRADE.label}` }),
         teacherField,
         el("div", { class: "muted", text: `Report generated ${todayLong()}` })
       )
@@ -104,9 +105,10 @@ export function buildReportArticle(student, scope, state, ctx, { interactive = t
       el("p", { class: "footnote", text: "Percentages use only questions that have been scored. Questions left blank are not counted as zeros." }),
       el("p", { class: "footnote",
         text: scope.type === "unit"
-          ? `Covers the Unit ${scope.unit} End Unit Assessment only. Other units are not included in these totals.`
-          : "Covers all End Unit Assessments across the year." }),
-      // Only worth explaining when a K standard actually appears on this report.
+          ? `Covers the Unit ${scope.unit} ${scope.assessment} only. Other units are not included in these totals.`
+          : "Covers every unit's assessment across the year." }),
+      // Only worth explaining when an earlier-grade standard appears on this
+      // report — which happens in Grade 1, never in Kindergarten.
       rows.some((r) => r.isPrerequisite)
         ? el("p", { class: "footnote", text: "Kindergarten (K.*) standards are readiness standards the Grade 1 curriculum revisits early in the year." })
         : null
